@@ -110,10 +110,19 @@ boubou666/PS2Recomp branch `sctpt2/ipu-in-dma` channel 4 stays busy after a star
   `0x1065F8` in two; switch tables are now found from the `jr` that dispatches through them and left out.
 
 Exhibition reaches the match intro (Rod Laver Arena, Roddick against Henin-Hardenne, 3D photographers through VU1).
-Then the main thread spins in `0x1000B4`, a walk over VIF packets that patches each `UNPACK` (`0x6C`) until the
-`MSCNT`+IRQ code (`0x97`): the packet address comes from a DMA tag table (`0x1B81A0`) indexed by halfwords the code
-reads from VU memory (`0x110082BC`), and those are garbage, so the walk reads random memory for ever.
+Each frame `0x1000B4` sends a DMA tag from `0x1B81A0` to VIF0 (ITOP `0xF`, an `UNPACK` and `MSCAL 0`), reads the
+batch count VU0 left in `vi05`, runs VU0 microprogram `0x158`, then builds a scratchpad tag list at `0x70000220` and
+starts VIF0 on it as a chain. Two runtime bugs broke it; both are fixed on boubou666/PS2Recomp branch `sctpt2/vu0-dma`:
+
+- The game stores the whole tag (`0x30000018`) in `D0_QWC`. The runtime used all 32 bits and sent 21 MB of RAM through
+  VIF0, whose stray `MPG` codes overwrote the VU0 microcode. Only the low 16 bits are the count.
+- VIF0's `ITOP` only reached the VIF registers, so `XITOP` in microprogram `0x0` read a stale value and the count was
+  wrong. The tag list then ended on stale scratchpad data, the chain ran on through memory and overwrote VU0 again,
+  and the main thread spun in the walk. VU0 programs now read the ITOP VIF0 last set.
+
+The match now reaches the player cards (3D court behind them) and the "FINAL SET" banner.
 
 ## Status
 
-Boots, menus, Exhibition setup and the match intro work; the match itself stalls on the VU-produced index list above.
+Boots, menus, Exhibition setup, the match intro, the player cards and the "FINAL SET" banner work; play itself is
+not checked yet.
