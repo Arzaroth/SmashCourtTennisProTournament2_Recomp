@@ -134,6 +134,12 @@ renderer (paraLLEl and CPU agree, `PS2X_GS_RECORD` + `ps2_gs_replay` reproduce i
 access to VU1 registers at `0x4000` (none), and a VIF0 interrupt handler (the game masks the i-bit with VIF0_ERR = 1
 and only registers an INTC handler for cause 11).
 
+During play VU1 runs 13 entry points of one microcode image (`PS2X_VU1_RECORD`; `0x01A0` and `0x2150` take 87% of the
+cycles) and `ps2_vu1_replay` reproduces all 3,000 recorded runs, so the VU1 interpreter and the compiled code agree.
+A `0x01A0` run outputs grey vertices (`0x8C`) but sets ADC (XYZ2 bit 111, no kick) on nearly all of them, and many
+have X/Y far outside the 4096-pixel range (`FTOI4` values like `0x0789BED8`): the scene is culled, not drawn black.
+The transforms look wrong before VU1: next, the matrices VU1 reads, which the EE builds with VU0 macro code.
+
 ## Status
 
 Boots, menus, Exhibition setup, the match intro and play (score, HUD, ball) work; the 3D court, stadium and players
