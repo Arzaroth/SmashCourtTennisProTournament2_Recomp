@@ -71,9 +71,18 @@ list (`0x176760`, tasks of 0x80 bytes with the function at `+0` and the next tas
 
 First overlay: `0x46EA80`-`0x4776D8`, 82 sources (68 decode errors, all in data at its end).
 
+## The black screen: StartThread's return value
+
+Frames were presented but black: the scene task (`0x126A08`, state byte at task `+0x14`, jump table `0x207C70`)
+sat in state 2 waiting for the stream library's status byte (`0x463C00`) to reach 2. That library's worker thread
+(entry `0x17CA90`) had run 16 cycles in total. Its init (`0x17CC78`) does `tid = CreateThread(...)`, then
+`StartThread(tid, 0)` and stores StartThread's result over the id (`bltz v0; sw v0, 0x514(s1)` at `0x17CD4C`). The
+EE kernel returns the thread id there; the runtime returned `KE_OK` (0), so every request woke thread 0 instead of
+the worker. Fixed in the runtime on boubou666/PS2Recomp branch `sctpt2/startthread-tid` (with a test), which the
+submodule tracks until it is merged. Found by classifying the 8 writers of the overlay task's wait flag (`+0x12`)
+and walking back from the ones that never ran, as the room's coordinator suggested.
+
 ## Status
 
-Boots, runs the first overlay and the main loop at 60 Hz, presents frames, but they are black. Both GS renderers
-agree, and the primitive dump shows why: each frame copies draw buffer 0 to the display buffer (`fbp 0x140`) in ten
-64-pixel strips and clears buffer 0, nothing else. The IOP side is busy: 64 raw CD reads in 30 s, 14 IOP threads,
-and the EE polls the sound driver (sid `0x10001`, rpc `0x2E`) 230 times with an all-zero reply.
+Boots and shows its first menu, the memory card prompt (no SCPT2 system data in slot 1, "Start game anyway?"),
+rendered correctly. Next: answer it and follow the game into the title and menus, capturing each new overlay.
