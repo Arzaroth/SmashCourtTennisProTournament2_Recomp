@@ -10,6 +10,6 @@ mkdir -p build/recomp-staging "$GENERATED"
 sed 's|^output = .*|output = "build/recomp-staging/"|' "$CONFIG" > build/recomp-staging.toml
 "$TOOLS_BUILD/ps2xRecomp/ps2_recomp" build/recomp-staging.toml
 
-# generated/vu1/ belongs to scripts/compile_vu1.sh.
-changed=$(rsync -rc --delete --exclude=/vu1/ --out-format='%n' build/recomp-staging/ "$GENERATED/" | grep -vc '/$' || true)
+# generated/vu1/ belongs to scripts/compile_vu1.sh, generated/overlays/ to scripts/recomp_overlays.sh.
+changed=$(rsync -rc --delete --exclude=/vu1/ --exclude=/overlays/ --out-format='%n' build/recomp-staging/ "$GENERATED/" | grep -vc '/$' || true)
 echo "Generated $(find "$GENERATED" -maxdepth 1 -name '*.cpp' | wc -l) sources in $GENERATED ($changed changed)"
