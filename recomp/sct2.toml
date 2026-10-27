@@ -6,7 +6,7 @@
 input = "game/SLUS_209.33"
 
 # Path to Ghidra exported function map (optional CSV)
-ghidra_output = ""
+ghidra_output = "recomp/function_bounds.csv"
 
 # Path to output directory
 output = "generated/"
@@ -476,7 +476,29 @@ entry_points = [
 ]
 
 # Legacy compatibility field. The analyzer no longer auto-populates skip entries.
-skip = []
+skip = [
+  "sub_001D78BC@0x001D78BC",
+  "sub_001E8AFC@0x001E8AFC",
+  "sub_001F7380@0x001F7380",
+  "sub_00201000@0x00201000",
+  "sub_002020B8@0x002020B8",
+  "sub_0020282C@0x0020282C",
+  "sub_00205400@0x00205400",
+  "sub_0020A3D0@0x0020A3D0",
+  "sub_0020AE80@0x0020AE80",
+  "sub_0020B000@0x0020B000",
+  "sub_0020B718@0x0020B718",
+  "sub_0020B750@0x0020B750",
+  "sub_0020B768@0x0020B768",
+  "sub_0020B780@0x0020B780",
+  "sub_0020BFB0@0x0020BFB0",
+  "sub_0020BFD0@0x0020BFD0",
+  "sub_0020C088@0x0020C088",
+  "sub_0020C300@0x0020C300",
+  "sub_0020C488@0x0020C488",
+  "sub_00483804@0x00483804",
+  "sub_004A2C0C@0x004A2C0C",
+]
 
 # Detected MMIO accesses
 [mmio]
