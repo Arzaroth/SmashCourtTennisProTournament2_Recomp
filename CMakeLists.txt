@@ -34,9 +34,22 @@ else()
         "VU1 runs in the interpreter (scripts/compile_vu1.sh)")
 endif()
 
-target_sources(ps2EntryRunner PRIVATE ${SCT2_GENERATED_SOURCES} ${SCT2_RUNTIME_SOURCES} ${SCT2_VU1_SOURCES})
+file(GLOB SCT2_OVERLAY_DIRS LIST_DIRECTORIES true CONFIGURE_DEPENDS "${SCT2_GENERATED_DIR}/overlays/*")
+set(SCT2_OVERLAY_SOURCES "")
+foreach(_sct2_overlay_dir ${SCT2_OVERLAY_DIRS})
+    if(IS_DIRECTORY "${_sct2_overlay_dir}")
+        file(GLOB _sct2_overlay_sources CONFIGURE_DEPENDS "${_sct2_overlay_dir}/*.cpp")
+        list(APPEND SCT2_OVERLAY_SOURCES ${_sct2_overlay_sources})
+        target_include_directories(ps2EntryRunner PRIVATE "${_sct2_overlay_dir}")
+    endif()
+endforeach()
+
+target_sources(ps2EntryRunner PRIVATE
+    ${SCT2_GENERATED_SOURCES} ${SCT2_RUNTIME_SOURCES} ${SCT2_VU1_SOURCES} ${SCT2_OVERLAY_SOURCES})
 target_include_directories(ps2EntryRunner PRIVATE "${SCT2_GENERATED_DIR}")
 
 list(LENGTH SCT2_GENERATED_SOURCES _sct2_count)
 list(LENGTH SCT2_VU1_SOURCES _sct2_vu1_count)
-message(STATUS "SmashCourtTennisProTournament2_Recomp: ${_sct2_count} generated sources, ${_sct2_vu1_count} compiled VU1 file(s)")
+list(LENGTH SCT2_OVERLAY_SOURCES _sct2_overlay_count)
+message(STATUS "SmashCourtTennisProTournament2_Recomp: ${_sct2_count} generated sources, ${_sct2_vu1_count} compiled VU1 "
+    "file(s), ${_sct2_overlay_count} overlay source(s)")
