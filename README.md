@@ -10,7 +10,7 @@ Not an emulator: the game's own MIPS R5900 code, rebuilt as a native program on 
 ![Based on](https://img.shields.io/badge/based%20on-PS2Recomp-17a35b)
 ![Status](https://img.shields.io/badge/status-bring--up-c94f4f)
 
-<img src="docs/screenshots/memory_card_prompt.jpg" width="49%">
+<img src="docs/screenshots/main_menu.jpg" width="49%"> <img src="docs/screenshots/title_screen.jpg" width="49%">
 
 <sub>Captured from the running port (640x448 internal resolution).</sub>
 
@@ -26,15 +26,15 @@ Not an emulator: the game's own MIPS R5900 code, rebuilt as a native program on 
 
 ## Status
 
-**Bring-up.** The game boots, loads its IOP modules and code overlays, and shows its first menu (the memory card
-prompt).
+**Bring-up.** The game boots, loads its IOP modules and code overlays, and reaches its main menu: the memory card
+prompt, the Dolby Pro Logic II logo, the title screen and the menu with its movie background.
 
 | Milestone | |
 |---|:---:|
 | Map and recompile the main ELF | ✅ |
 | Boot: EE kernel, the game's own IOP modules, raw sector reads from the disc image | ✅ |
 | Code overlays loaded into `.staytrash`, recompiled as overlay modules | 🔧 |
-| Logos and movies | ⏳ |
+| Logos and movies (menu movie streamed to the IPU by DMA) | 🔧 |
 | Title screen, menus | 🔧 |
 | Music and sound effects | ⏳ |
 | Matches | ⏳ |
@@ -65,8 +65,9 @@ disc files ──► ps2_analyzer (+ Ghidra, hint lists) ──► recomp/sct2.t
   the runtime at the disc image: the game reads its data by sector number from outside the ISO 9660 file system.
 
 The runtime is the `PS2Recomp/` git submodule: [boubou666/PS2Recomp](https://github.com/boubou666/PS2Recomp), for now
-branch `sctpt2/startthread-tid` (`main` plus a StartThread fix waiting for review), shared with the *Soulcalibur III*, *Twisted Metal: Black*, *Valkyrie Profile 2: Silmeria*, *The Lord of the
-Rings: The Third Age*, *Drakengard* and *Fighting for One Piece* recompilations. The top-level `CMakeLists.txt`
+branch `sctpt2/ipu-in-dma` (`main` plus the StartThread and toIPU DMA fixes waiting for review), shared with the
+*Soulcalibur III*, *Twisted Metal: Black*, *Valkyrie Profile 2: Silmeria*, *The Lord of the Rings: The Third Age*,
+*Drakengard* and *Fighting for One Piece* recompilations. The top-level `CMakeLists.txt`
 builds its runtime, swaps its placeholder function table for the generated one and links the generated code,
 `runtime/` and the compiled VU1 microcode into `ps2EntryRunner`. Generic fixes go to boubou666's `main`.
 
