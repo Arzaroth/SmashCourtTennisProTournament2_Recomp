@@ -11,7 +11,7 @@ Not an emulator: the game's own MIPS R5900 code, rebuilt as a native program on 
 ![Status](https://img.shields.io/badge/status-bring--up-c94f4f)
 
 <img src="docs/screenshots/main_menu.jpg" width="49%"> <img src="docs/screenshots/title_screen.jpg" width="49%">
-<img src="docs/screenshots/player_card.jpg" width="49%"> <img src="docs/screenshots/final_set.jpg" width="49%">
+<img src="docs/screenshots/match_play.jpg" width="49%"> <img src="docs/screenshots/player_card.jpg" width="49%">
 
 <sub>Captured from the running port (640x448 internal resolution).</sub>
 
