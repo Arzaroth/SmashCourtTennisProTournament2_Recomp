@@ -2,6 +2,7 @@
 #include "ps2_recompiled_functions.h"
 #include "ps2_runtime.h"
 
+#include <algorithm>
 #include <cstdlib>
 #include <cstring>
 #include <filesystem>
@@ -33,6 +34,7 @@ namespace
     constexpr uint32_t kStaytrashFileOffset = 0x0010D510u;
     constexpr uint32_t kStaytrashSize = 0x000393B7u;
     constexpr uint32_t kTaskRunner = 0x00176760u;
+    constexpr uint32_t kLoaderRequest = 0x00464640u;
     constexpr uint32_t kGuardSize = 64u;
 
     struct OverlayCapture
@@ -40,6 +42,7 @@ namespace
         std::filesystem::path dir;
         std::vector<uint8_t> boot;
         std::set<uint64_t> seen;
+        uint32_t overlayEnd = 0u;
     };
     OverlayCapture *g_capture = nullptr;
 
@@ -69,6 +72,8 @@ namespace
         }
         if (end == kOverlayBase)
             return;
+        // Overlays run past .staytrash into memory the ELF does not cover; the decompressor's request gives their size.
+        end = std::max(end, g_capture->overlayEnd);
         const uint64_t hash = fnv1a(rdram + kOverlayBase, kGuardSize);
         if (!g_capture->seen.insert(hash).second)
             return;
@@ -82,7 +87,15 @@ namespace
 
     void taskRunnerCapturing(uint8_t *rdram, R5900Context *ctx, PS2Runtime *runtime)
     {
-        captureOverlay(rdram);
+        uint32_t size = 0u;
+        uint32_t destination = 0u;
+        std::memcpy(&size, rdram + kLoaderRequest + 0x8u, 4u);
+        std::memcpy(&destination, rdram + kLoaderRequest + 0xCu, 4u);
+        if ((destination & PS2_RAM_MASK) == kOverlayBase && size != 0u && size < 0x400000u)
+            g_capture->overlayEnd = kOverlayBase + ((size + 3u) & ~3u);
+        // The decompressor thread fills an overlay over several frames and sets the status when it is done.
+        if (rdram[kLoaderRequest + 0x1Eu] != 0u)
+            captureOverlay(rdram);
         sub_00176760_0x176760(rdram, ctx, runtime);
     }
 
