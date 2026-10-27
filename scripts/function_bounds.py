@@ -10,7 +10,8 @@ and are left out; --end cuts a function short where data follows its last instru
 out of the map (overlay code, data); --callers adds the JAL targets an overlay image has in the ELF's segments,
 functions only overlays call; --pointers adds every function a word of the image points at, when the word there is an
 "addiu $sp, $sp, -N" prologue or right after a "jr $ra" and its delay slot, or code builds with a lui/addiu pair
-(functions reached only through function pointers). An image given as ELF@0 is read through its program headers.
+(functions reached only through function pointers). Targets in a switch's case table count only with a prologue.
+An image given as ELF@0 is read through its program headers.
 """
 import argparse
 import os
@@ -68,7 +69,38 @@ def main():
                 kind, offset, vaddr, _, filesz = struct.unpack_from("<IIIII", data, phoff + index * phentsize)
                 if kind == 1:
                     elf_chunks.append((vaddr, data[offset:offset + filesz]))
-    def consider(target):
+    # Switch tables: an address built with lui/addiu that a "jr $reg" (not $ra) dispatches through a few instructions
+    # later, as long as the sltiu bound before it. Their words are case labels, which often follow a "jr $ra" without
+    # being functions.
+    case_words = set()
+    for vaddr, code in elf_chunks:
+        high = {}
+        for offset in range(0, len(code) - 3, 4):
+            word = struct.unpack_from("<I", code, offset)[0]
+            opcode, rs, rt = word >> 26, (word >> 21) & 31, (word >> 16) & 31
+            if opcode == 0x0F:
+                high[rt] = ((word & 0xFFFF) << 16, offset)
+            elif opcode == 0x09 and rs in high and offset - high[rs][1] <= 64:
+                base = (high[rs][0] + ((word & 0xFFFF) ^ 0x8000) - 0x8000) & 0xFFFFFFFF
+                window = (struct.unpack_from("<I", code, at)[0]
+                          for at in range(offset + 4, min(offset + 36, len(code) - 3), 4))
+                if any(w >> 26 == 0 and w & 0x3F == 0x08 and (w >> 21) & 31 != 31 for w in window):
+                    bound = 256
+                    for at in range(offset - 4, max(offset - 52, -1), -4):
+                        before = struct.unpack_from("<I", code, at)[0]
+                        if before >> 26 == 0x0B:
+                            bound = before & 0xFFFF
+                            break
+                    for table_vaddr, table in elf_chunks:
+                        entry = base
+                        while table_vaddr <= entry < table_vaddr + len(table) - 3 and entry - base < bound * 4:
+                            value = struct.unpack_from("<I", table, entry - table_vaddr)[0]
+                            if not SEGMENTS[0][0] <= value < SEGMENTS[0][1]:
+                                break
+                            case_words.add(entry)
+                            entry += 4
+
+    def consider(target, case_table=False):
         if target % 4 or not any(begin <= target < end for begin, end in SEGMENTS[:1]):
             return
         if any(begin <= target < end for begin, end in excluded):
@@ -77,7 +109,7 @@ def main():
             if vaddr + 12 <= target < vaddr + len(code) - 3:
                 word = struct.unpack_from("<I", code, target - vaddr)[0]
                 after_return = JR_RA in (struct.unpack_from("<I", code, target - vaddr - back)[0] for back in (8, 12))
-                if (word >> 16 == 0x27BD and word & 0x8000) or after_return:
+                if (word >> 16 == 0x27BD and word & 0x8000) or (after_return and not case_table):
                     names.setdefault(target, f"sub_{target:08X}")
 
     for spec in args.pointers:
@@ -87,11 +119,11 @@ def main():
             chunks = elf_chunks
         else:
             chunks = [(int(load, 16), data)]
-        for _, chunk in chunks:
+        for chunk_vaddr, chunk in chunks:
             high = {}
             for offset in range(0, len(chunk) - 3, 4):
                 word = struct.unpack_from("<I", chunk, offset)[0]
-                consider(word)
+                consider(word, chunk_vaddr + offset in case_words)
                 opcode, rs, rt = word >> 26, (word >> 21) & 31, (word >> 16) & 31
                 if opcode == 0x0F:
                     high[rt] = ((word & 0xFFFF) << 16, offset)
