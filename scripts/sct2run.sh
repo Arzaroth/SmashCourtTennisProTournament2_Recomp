@@ -16,9 +16,9 @@ while kill -0 $pid 2>/dev/null && [ $(( $(date +%s) - start )) -lt "$secs" ]; do
 if kill -0 $pid 2>/dev/null; then
   geo=$(hyprctl clients -j | python3 -I -c 'import json,sys
 for c in json.load(sys.stdin):
-    if c["title"].startswith("PS2-Recomp"):
+    if c["title"].startswith("PS2-Recomp") and "SLUS_209.33" in c["title"]:
         print("%d,%d %dx%d" % (c["at"][0], c["at"][1], c["size"][0], c["size"][1])); break')
-  [ -n "$geo" ] && timeout 10 grim -g "$geo" "$name.png" && echo "shot $runs/$name.png"
+  if [ -n "$geo" ] && timeout 10 grim -g "$geo" "$name.png"; then echo "shot $runs/$name.png"; else echo "no screenshot (window ${geo:-not found})"; fi
   kill $pid 2>/dev/null
 else
   echo "exited early"
