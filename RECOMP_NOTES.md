@@ -122,25 +122,21 @@ starts VIF0 on it as a chain. Two runtime bugs broke it; both are fixed on boubo
 
 The match now reaches the player cards and the "FINAL SET" banner, and play runs (score, HUD, ball, points).
 
-### Open: the court, stadium and players are black
+### The 3D scene: vf0 written inside an instruction pair
 
-Already black behind the photographers in the intro. A GS dump during play (`PS2X_GS_DUMP`, CPU renderer) shows each
-frame: copy fb0 to the display buffer (fbp 140, CT16S), clear fb0 to `0x80000000`, about 2,800 untextured triangles
-(`TEST 0x3C00F`: alpha test not-equal 0, destination alpha test with DATM 1, depth test always), about 600 textured
-ones (`TEST 0x5000F`, 64x64 T4 textures), then the HUD. Every untextured vertex is RGBA `0x00000040`, a darkening pass
-that changes nothing on black; nothing textured and large enough to be the court reaches the GS. Ruled out: the GS
-renderer (paraLLEl and CPU agree, `PS2X_GS_RECORD` + `ps2_gs_replay` reproduce it), the VU compilers
-(`PS2X_VU_AOT=0 PS2X_VU_LIFTED=0` gives the same picture), the VU0 4096-cycle limit (raised to 2^20: no change), VU0
-access to VU1 registers at `0x4000` (none), and a VIF0 interrupt handler (the game masks the i-bit with VIF0_ERR = 1
-and only registers an INTC handler for cause 11).
+The court, stadium and players were black from the intro on. A GS dump during play (`PS2X_GS_DUMP`, CPU renderer)
+showed only a darkening pass (untextured, RGBA `0x00000040`) and the small player textures; the GS renderers, the VU
+compilers (`PS2X_VU_AOT=0 PS2X_VU_LIFTED=0`), the VU0 cycle limit and a VIF0 interrupt handler were ruled out.
 
 During play VU1 runs 13 entry points of one microcode image (`PS2X_VU1_RECORD`; `0x01A0` and `0x2150` take 87% of the
-cycles) and `ps2_vu1_replay` reproduces all 3,000 recorded runs, so the VU1 interpreter and the compiled code agree.
-A `0x01A0` run outputs grey vertices (`0x8C`) but sets ADC (XYZ2 bit 111, no kick) on nearly all of them, and many
-have X/Y far outside the 4096-pixel range (`FTOI4` values like `0x0789BED8`): the scene is culled, not drawn black.
-The transforms look wrong before VU1: next, the matrices VU1 reads, which the EE builds with VU0 macro code.
+cycles). A `0x01A0` run set ADC on nearly every vertex and left X/Y in clip space (`FTOI4` values like `0x0789BED8`):
+only the first vertex of a batch was divided by w. The camera matrix VU1 reads (qwords `0x5`-`0x8`) is right.
+The perspective divide is the pair at `0x5F0`, `SUB.xyw vf0, vf25, vf21` (for its flags) with
+`DIV Q, vf0.w, vf27.w`: the interpreter and `ps2_vu_aot`'s blocks wrote the upper result into vf0 before the lower
+half read it, so Q was `1 / 2170` style garbage instead of `1 / w`. Upper writes to vf0 are now discarded
+(boubou666/PS2Recomp branch `sctpt2/vu-vf0-discard`, with a test), and the match draws its court, players, line judges
+and stadium.
 
 ## Status
 
-Boots, menus, Exhibition setup, the match intro and play (score, HUD, ball) work; the 3D court, stadium and players
-are black.
+Boots, menus, Exhibition setup, the match intro and play work, with the 3D court, players and stadium drawn.
