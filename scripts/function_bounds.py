@@ -1,0 +1,52 @@
+#!/usr/bin/env python3
+"""Writes recomp/function_bounds.csv: every function ps2_recomp found without a map, ending at the next one.
+
+usage: function_bounds.py <config.toml> <generated-dir> [--end 0xSTART=0xEND ...] > recomp/function_bounds.csv
+
+<generated-dir> is ps2_recomp output from <config.toml> with ghidra_output = "": a map turns the recompiler's own
+function discovery off, so the map has to carry every function. [general].skip entries end the function before them
+and are left out; --end cuts a function short where data follows its last instruction.
+"""
+import argparse
+import os
+import re
+import tomllib
+
+SEGMENTS = [(0x100000, 0x20C510), (0x46EA80, 0x4A7E38)]
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("config")
+    parser.add_argument("generated")
+    parser.add_argument("--end", action="append", default=[])
+    args = parser.parse_args()
+
+    general = tomllib.load(open(args.config, "rb"))["general"]
+    names = {}
+    for file in os.listdir(args.generated):
+        match = re.match(r"(.+)_0x([0-9a-f]+)\.cpp$", file)
+        if match and not file.startswith("entry_"):
+            names[int(match.group(2), 16)] = match.group(1)
+    for key in ("stubs", "untracked_stubs"):
+        for selector in general.get(key, []):
+            name, address = selector.split("@")
+            names.setdefault(int(address, 16), name)
+    skips = {int(selector.split("@")[1], 16) for selector in general.get("skip", [])}
+    ends = {int(start, 16): int(end, 16) for start, end in (cut.split("=") for cut in args.end)}
+
+    starts = sorted(set(names) | skips)
+    print("Name,Start,End,Size")
+    for index, start in enumerate(starts):
+        if start in skips:
+            continue
+        segment_end = next(end for begin, end in SEGMENTS if begin <= start < end)
+        end = segment_end
+        if index + 1 < len(starts) and starts[index + 1] < segment_end:
+            end = starts[index + 1]
+        end = ends.get(start, end)
+        print(f"{names[start]},0x{start:08X},0x{end:08X},{end - start}")
+
+
+if __name__ == "__main__":
+    main()
