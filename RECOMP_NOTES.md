@@ -53,13 +53,27 @@ and compiled.
 
 ## Code overlays in .staytrash
 
-`.staytrash` is boot code the game overwrites with code loaded from disc: during a frame, 36 KB at
-`0x46EA80`-`0x4776D8` differ from the ELF. The per-frame task list (`0x176760`, tasks of 0x80 bytes with the
-function at `+0` and the next task at `+8`) calls `0x46EA80`, so the runtime keeps running the recompiled boot
-routine (IOP reboot, fileio reset) instead of the overlay. The overlays have to be captured and recompiled as
-overlay modules (`ps2_overlay_modules.h`).
+`.staytrash` is boot code the game overwrites with code it decompresses from disc (thread 2, entry `0x17F9B8`, is
+an LZ decoder fed by the request block at `0x464640`; the images are not stored raw on disc). The per-frame task
+list (`0x176760`, tasks of 0x80 bytes with the function at `+0` and the next task at `+8`) calls into them.
+
+- `.staytrash` is left out of the main function table (`scripts/function_bounds.py --exclude`): the main table wins
+  over overlay modules, so the boot routine kept running where the overlay was.
+- `scripts/recomp_overlays.sh` recompiles `0x46EA80`-`0x46F424` of the ELF (the boot code; IRX images and data
+  follow it) as module `boot`, with the 7 functions `.text` calls as entry points, and every captured image in
+  `game/overlays/` as module `ovl_<hash>`. Functions an overlay reaches only through its own data (task tables) are
+  added as entry points: words pointing at an `addiu $sp, $sp, -N` inside the image.
+- Capture: `PS2X_SCT2_OVERLAY_DUMP=game/overlays` writes the bytes of `.staytrash` that differ from the ELF before
+  each run of the task list, named by the hash of the first 64 bytes, the guard the runtime tells modules apart by
+  (the overlay's own data changes from frame to frame).
+- `scripts/update_bounds.sh` adds the `.text` functions only the captured overlays call (`0x1332F0` and 16 more
+  for the first overlay); rerun it, `scripts/recomp.sh` and `scripts/recomp_overlays.sh` after each new capture.
+
+First overlay: `0x46EA80`-`0x4776D8`, 82 sources (68 decode errors, all in data at its end).
 
 ## Status
 
-Boots, loads its IOP modules and runs the main loop at 60 Hz, but nothing is presented yet (`gs frames=0`): the
-overlay code at `0x46EA80` is the next step.
+Boots, runs the first overlay and the main loop at 60 Hz, presents frames, but they are black. Both GS renderers
+agree, and the primitive dump shows why: each frame copies draw buffer 0 to the display buffer (`fbp 0x140`) in ten
+64-pixel strips and clears buffer 0, nothing else. The IOP side is busy: 64 raw CD reads in 30 s, 14 IOP threads,
+and the EE polls the sound driver (sid `0x10001`, rpc `0x2E`) 230 times with an all-zero reply.
