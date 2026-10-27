@@ -120,9 +120,21 @@ starts VIF0 on it as a chain. Two runtime bugs broke it; both are fixed on boubo
   wrong. The tag list then ended on stale scratchpad data, the chain ran on through memory and overwrote VU0 again,
   and the main thread spun in the walk. VU0 programs now read the ITOP VIF0 last set.
 
-The match now reaches the player cards (3D court behind them) and the "FINAL SET" banner.
+The match now reaches the player cards and the "FINAL SET" banner, and play runs (score, HUD, ball, points).
+
+### Open: the court, stadium and players are black
+
+Already black behind the photographers in the intro. A GS dump during play (`PS2X_GS_DUMP`, CPU renderer) shows each
+frame: copy fb0 to the display buffer (fbp 140, CT16S), clear fb0 to `0x80000000`, about 2,800 untextured triangles
+(`TEST 0x3C00F`: alpha test not-equal 0, destination alpha test with DATM 1, depth test always), about 600 textured
+ones (`TEST 0x5000F`, 64x64 T4 textures), then the HUD. Every untextured vertex is RGBA `0x00000040`, a darkening pass
+that changes nothing on black; nothing textured and large enough to be the court reaches the GS. Ruled out: the GS
+renderer (paraLLEl and CPU agree, `PS2X_GS_RECORD` + `ps2_gs_replay` reproduce it), the VU compilers
+(`PS2X_VU_AOT=0 PS2X_VU_LIFTED=0` gives the same picture), the VU0 4096-cycle limit (raised to 2^20: no change), VU0
+access to VU1 registers at `0x4000` (none), and a VIF0 interrupt handler (the game masks the i-bit with VIF0_ERR = 1
+and only registers an INTC handler for cause 11).
 
 ## Status
 
-Boots, menus, Exhibition setup, the match intro, the player cards and the "FINAL SET" banner work; play itself is
-not checked yet.
+Boots, menus, Exhibition setup, the match intro and play (score, HUD, ball) work; the 3D court, stadium and players
+are black.
