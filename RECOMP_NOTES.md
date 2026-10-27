@@ -44,9 +44,22 @@ and compiled.
 - The IOP's first raw read works (`lsn=0x213932`, 6 sectors, from `game/disc.iso`), the game sets PMODE and the
   display buffers and draws through PATH2/PATH3.
 
+- crt0 calls `SetupThread` with the main stack at `0x1FF8000`-`0x2000000`, where the runtime keeps its interrupt and
+  callback stacks by default: the main thread's saved `$ra` was overwritten and it returned to 0 after five frames.
+  The override moves the runtime's reserved range to kernel RAM (`configureReservedMemory(0x80000, 0x100000,
+  0x1FF8000)`), as in the Fighting for One Piece and Soulcalibur III ports.
+- The main loop (`0x100270`) then runs at 60 Hz: the VSync callback `0x178D98` (registered with
+  `sceGsSyncVCallback`) wakes the main thread, which sleeps in `0x178EC8` every frame.
+
+## Code overlays in .staytrash
+
+`.staytrash` is boot code the game overwrites with code loaded from disc: during a frame, 36 KB at
+`0x46EA80`-`0x4776D8` differ from the ELF. The per-frame task list (`0x176760`, tasks of 0x80 bytes with the
+function at `+0` and the next task at `+8`) calls `0x46EA80`, so the runtime keeps running the recompiled boot
+routine (IOP reboot, fileio reset) instead of the overlay. The overlays have to be captured and recompiled as
+overlay modules (`ps2_overlay_modules.h`).
+
 ## Status
 
-Boots to the main loop: IRX modules loaded, two game threads created, display set up, about 5 frame flips
-(`0x178F30`). Then the main thread ends: its PC becomes 0 with `ra = 0` at `sp = 0x1FFFFE0`, which the EE scheduler
-treats as a thread exit. Not found yet which callee of the main loop (`0x100270`-`0x1002B0`) returns through a
-zeroed `ra`.
+Boots, loads its IOP modules and runs the main loop at 60 Hz, but nothing is presented yet (`gs frames=0`): the
+overlay code at `0x46EA80` is the next step.
