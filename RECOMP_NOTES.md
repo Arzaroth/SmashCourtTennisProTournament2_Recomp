@@ -82,7 +82,26 @@ the worker. Fixed in the runtime on boubou666/PS2Recomp branch `sctpt2/startthre
 submodule tracks until it is merged. Found by classifying the 8 writers of the overlay task's wait flag (`+0x12`)
 and walking back from the ones that never ran, as the room's coordinator suggested.
 
+## Title screen and functions reached through pointers
+
+Past the memory card prompt the title screen called `.text` functions nothing else calls: `0x138FF8` through a
+pointer in data, `0x139528` through a table of leaf functions copied to the stack. `scripts/function_bounds.py
+--pointers` adds every function a data word, or a lui/addiu pair in code, points at when the target is an
+`addiu $sp, $sp, -N` prologue or follows a `jr $ra` and its delay slot (2,212 functions), with the data blocks of
+`.text` left out of the map (`--exclude`), since byte patterns there look like pointers.
+
+## The menu movie: DMA channel 4
+
+The main menu plays a movie behind its panels. After a first `sceMpegAddBs` the game feeds the IPU itself:
+before each `sceMpegGetPicture` (`0x1780F4`) it writes `D4_TADR`, `D4_QWC = 0` and `D4_CHCR = 0x105`
+(`0x178008`-`0x178030`). The chain is `next` (`0x1241090`) to `ref` (`0x7D00` quadwords at `0x11C4080`) and back: the
+whole 500 KB movie held in RAM, looped by a chain that never ends. The runtime had no channel 4, so `GetPicture`
+waited for ever on `EeWaitReason::Mpeg`; reading the chain at once took 256 MiB of repeated stream instead. On
+boubou666/PS2Recomp branch `sctpt2/ipu-in-dma` channel 4 stays busy after a start and `sceMpegGetPicture` pulls
+64 KiB at a time from where the chain stopped until a picture decodes.
+
 ## Status
 
-Boots and shows its first menu, the memory card prompt (no SCPT2 system data in slot 1, "Start game anyway?"),
-rendered correctly. Next: answer it and follow the game into the title and menus, capturing each new overlay.
+Reaches the main menu (Arcade, Exhibition, Tutorial, Pro Tour, Challenge, Spectator, Trophy Room, Options) with its
+movie background. The movie shows thin vertical streaks. Next: a match, through Exhibition, capturing each new
+overlay.
