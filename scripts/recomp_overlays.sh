@@ -41,10 +41,20 @@ print(", ".join(f"\"ptr_{t:08X}@0x{t:08X}\"" for t in sorted(found)))' "$image")
     if [ "$name" = boot ]; then
         entries="$BOOT_ENTRIES${entries:+, $entries}"
     fi
-    python3 -I -c 'import sys; t = open(sys.argv[1]).read()
-for key, value in zip(("@INPUT@", "@OUTPUT@", "@NAME@", "@ENTRIES@"), sys.argv[2:]):
+    config() {
+        python3 -I -c 'import sys; t = open(sys.argv[1]).read()
+for key, value in zip(("@INPUT@", "@OUTPUT@", "@NAME@", "@ENTRIES@", "@MAP@"), sys.argv[2:]):
     t = t.replace(key, value)
-sys.stdout.write(t)' "$ROOT/recomp/overlay.toml.in" "$WORK/$name.elf" "$WORK/$name/" "$name" "$entries" > "$WORK/$name.toml"
+sys.stdout.write(t)' "$ROOT/recomp/overlay.toml.in" "$WORK/$name.elf" "$1" "$name" "$entries" "$2"
+    }
+    # A first pass without a map finds where data follows code; the second ends the functions there.
+    mkdir -p "$WORK/$name.nomap"
+    config "$WORK/$name.nomap/" "" > "$WORK/$name.nomap.toml"
+    "$TOOLS_BUILD/ps2xRecomp/ps2_recomp" "$WORK/$name.nomap.toml" > "$WORK/$name.nomap.log" 2>&1 \
+        || { echo "ps2_recomp failed on $name, see $WORK/$name.nomap.log"; exit 1; }
+    python3 -I "$ROOT/scripts/module_bounds.py" "$image" 0x46EA80 "$WORK/$name.nomap" "$WORK/$name.nomap.log" \
+        > "$WORK/$name.map.csv"
+    config "$WORK/$name/" "$WORK/$name.map.csv" > "$WORK/$name.toml"
     "$TOOLS_BUILD/ps2xRecomp/ps2_recomp" "$WORK/$name.toml" > "$WORK/$name.log" 2>&1 \
         || { echo "ps2_recomp failed on $name, see $WORK/$name.log"; exit 1; }
     mkdir -p "$GENERATED/overlays/$name"
