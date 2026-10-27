@@ -6,6 +6,12 @@
 
 namespace
 {
+    // crt0 calls SetupThread(stack 0x01FF8000, size 0x8000): the main stack ends at the top of RAM, where the runtime
+    // puts its interrupt and callback stacks by default. Keep them in the kernel RAM below the ELF instead.
+    constexpr uint32_t kReservedBase = 0x00080000u;
+    constexpr uint32_t kReservedTop = 0x00100000u;
+    constexpr uint32_t kMainStackBottom = 0x01FF8000u;
+
     constexpr uint32_t kSceSifSearchModuleByName = 0x0019EBD0u;
     constexpr int32_t kKeUnknownModule = -202;
 
@@ -19,6 +25,7 @@ namespace
 
     void applySmashCourtTennis2(PS2Runtime &runtime)
     {
+        runtime.configureReservedMemory(kReservedBase, kReservedTop, kMainStackBottom);
         runtime.registerFunction(kSceSifSearchModuleByName, searchModuleByNameUnknown);
 
         // The game data sits in raw sectors outside the ISO 9660 file system, read by LSN.
