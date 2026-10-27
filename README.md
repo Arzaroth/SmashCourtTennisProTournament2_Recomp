@@ -95,8 +95,9 @@ scripts/run.sh                                                                  
 ```
 
 The extracted disc folder is the game's `cdrom0:` and `game/disc.iso` serves its raw sector reads; the memory cards
-(`mc0/`, `mc1/`) are created next to the ELF in `game/`. `scripts/analyze.sh` reruns `ps2_analyzer` into `build/analyzer.toml`; `recomp/sct2.toml` started from that
-output and is edited by hand, so merge new analyzer output into it rather than replacing it.
+(`mc0/`, `mc1/`) are created next to the ELF in `game/`. `scripts/analyze.sh` reruns `ps2_analyzer` into
+`build/analyzer.toml`; `recomp/sct2.toml` started from that output and is edited by hand, so merge new analyzer output
+into it rather than replacing it.
 
 The game decompresses code overlays into `.staytrash` (`0x46EA80`) from disc, so they are not in the ELF. A run with
 `PS2X_SCT2_OVERLAY_DUMP=game/overlays` saves each one the first time it runs; then `scripts/update_bounds.sh` (adds
