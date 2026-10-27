@@ -10,6 +10,10 @@ Not an emulator: the game's own MIPS R5900 code, rebuilt as a native program on 
 ![Based on](https://img.shields.io/badge/based%20on-PS2Recomp-17a35b)
 ![Status](https://img.shields.io/badge/status-bring--up-c94f4f)
 
+<img src="docs/screenshots/memory_card_prompt.jpg" width="49%">
+
+<sub>Captured from the running port (640x448 internal resolution).</sub>
+
 </div>
 
 > [!IMPORTANT]
@@ -22,14 +26,16 @@ Not an emulator: the game's own MIPS R5900 code, rebuilt as a native program on 
 
 ## Status
 
-**Bring-up.** The ELF is mapped by `ps2_analyzer` and recompiles; boot has not been worked on yet.
+**Bring-up.** The game boots, loads its IOP modules and code overlays, and shows its first menu (the memory card
+prompt).
 
 | Milestone | |
 |---|:---:|
 | Map and recompile the main ELF | ✅ |
-| Boot: EE kernel, the game's own IOP modules, raw sector reads from the disc image | ⏳ |
+| Boot: EE kernel, the game's own IOP modules, raw sector reads from the disc image | ✅ |
+| Code overlays loaded into `.staytrash`, recompiled as overlay modules | 🔧 |
 | Logos and movies | ⏳ |
-| Title screen, menus | ⏳ |
+| Title screen, menus | 🔧 |
 | Music and sound effects | ⏳ |
 | Matches | ⏳ |
 | Memory card: save and load | ⏳ |
@@ -58,8 +64,8 @@ disc files ──► ps2_analyzer (+ Ghidra, hint lists) ──► recomp/sct2.t
 - `runtime/sct2_overrides.cpp` holds the game-specific bindings, matched to the ELF by entry point and CRC. It points
   the runtime at the disc image: the game reads its data by sector number from outside the ISO 9660 file system.
 
-The runtime is the `PS2Recomp/` git submodule: [boubou666/PS2Recomp](https://github.com/boubou666/PS2Recomp), branch
-`main`, shared with the *Soulcalibur III*, *Twisted Metal: Black*, *Valkyrie Profile 2: Silmeria*, *The Lord of the
+The runtime is the `PS2Recomp/` git submodule: [boubou666/PS2Recomp](https://github.com/boubou666/PS2Recomp), for now
+branch `sctpt2/startthread-tid` (`main` plus a StartThread fix waiting for review), shared with the *Soulcalibur III*, *Twisted Metal: Black*, *Valkyrie Profile 2: Silmeria*, *The Lord of the
 Rings: The Third Age*, *Drakengard* and *Fighting for One Piece* recompilations. The top-level `CMakeLists.txt`
 builds its runtime, swaps its placeholder function table for the generated one and links the generated code,
 `runtime/` and the compiled VU1 microcode into `ps2EntryRunner`. Generic fixes go to boubou666's `main`.
@@ -82,13 +88,20 @@ scripts/extract_iso.sh "/path/to/Smash Court Tennis - Pro Tournament 2 (USA).iso
 scripts/build_tools.sh                                                              # ps2_recomp, ps2_analyzer, ps2_vu_aot -> build/tools
 scripts/recomp.sh                                                                   # game/SLUS_209.33 + recomp/sct2.toml -> generated/
 scripts/compile_vu1.sh                                                              # VU1 microcode in the ELF -> generated/vu1/
+scripts/recomp_overlays.sh                                                          # .staytrash boot code + captured overlays -> generated/overlays/
 scripts/build_runtime.sh                                                            # runtime + generated code -> build/game (RelWithDebInfo)
 scripts/run.sh                                                                      # ps2EntryRunner game/SLUS_209.33
 ```
 
-The extracted disc folder is the game's `cdrom0:` and `game/disc.iso` serves its raw sector reads; the memory cards (`mc0/`, `mc1/`) are created next to the ELF in
-`game/`. `scripts/analyze.sh` reruns `ps2_analyzer` into `build/analyzer.toml`; `recomp/sct2.toml` started from that
+The extracted disc folder is the game's `cdrom0:` and `game/disc.iso` serves its raw sector reads; the memory cards
+(`mc0/`, `mc1/`) are created next to the ELF in `game/`. `scripts/analyze.sh` reruns `ps2_analyzer` into `build/analyzer.toml`; `recomp/sct2.toml` started from that
 output and is edited by hand, so merge new analyzer output into it rather than replacing it.
+
+The game decompresses code overlays into `.staytrash` (`0x46EA80`) from disc, so they are not in the ELF. A run with
+`PS2X_SCT2_OVERLAY_DUMP=game/overlays` saves each one the first time it runs; then `scripts/update_bounds.sh` (adds
+the `.text` functions only overlays call to `recomp/function_bounds.csv`), `scripts/recomp.sh`,
+`scripts/recomp_overlays.sh` and `scripts/build_runtime.sh` compile it in. Until then the game stops where it needs
+an overlay that is not compiled yet (a `missing-target` line in the log).
 
 `JOBS=<n>` sets the build parallelism of every script (default: all cores). `scripts/build_runtime.sh Release` or
 `Debug` picks another build type, and `CXX` another compiler (Clang is used when it is installed).
@@ -108,11 +121,11 @@ logs to `build/runs/<name>.log` and screenshots the window.
 
 | Path | Contents |
 |---|---|
-| `PS2Recomp/` | The recompiler and runtime (git submodule, boubou666/PS2Recomp branch `main`) |
+| `PS2Recomp/` | The recompiler and runtime (git submodule, boubou666/PS2Recomp, `main` plus pending fixes) |
 | `CMakeLists.txt` | Builds the runtime with the generated code and the game overrides linked in |
-| `recomp/` | Recompiler config (`sct2.toml`) and, as the port grows, the function map and entry-point hint lists |
+| `recomp/` | Recompiler config (`sct2.toml`), the function map (`function_bounds.csv`) and the overlay module template |
 | `runtime/` | Game override module (`sct2_overrides.cpp`) |
-| `scripts/` | Build, analyze, recompile, VU1 compile and run scripts; disassembly, IRX and profiling helpers |
+| `scripts/` | Build, analyze, recompile, overlay, VU1 compile and run scripts; function map, disassembly, IRX and profiling helpers |
 | `RECOMP_NOTES.md` | How the port is brought up, the fixes and the debugging tools |
 | `game/`, `generated/`, `build/` | Created by the scripts, ignored by git: disc files, generated C++, builds |
 
