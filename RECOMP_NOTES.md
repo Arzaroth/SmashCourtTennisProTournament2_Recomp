@@ -100,8 +100,20 @@ waited for ever on `EeWaitReason::Mpeg`; reading the chain at once took 256 MiB 
 boubou666/PS2Recomp branch `sctpt2/ipu-in-dma` channel 4 stays busy after a start and `sceMpegGetPicture` pulls
 64 KiB at a time from where the chain stopped until a picture decodes.
 
+## Into a match
+
+- Overlays are filled by the decompressor thread over several frames: the capture waits for the request's status
+  byte (`0x464640 + 0x1E`) and takes the overlay's size from the request (`+0x8`), since the match overlay runs to
+  `0x576928`, past `.staytrash`. Overlay modules recompile in two passes (`scripts/module_bounds.py`) so the data in
+  an image does not become code: every module now has 0 decode errors.
+- `function_bounds.py --pointers` took a switch's case labels (they follow a `jr $ra`) for functions and cut
+  `0x1065F8` in two; switch tables are now found from the `jr` that dispatches through them and left out.
+
+Exhibition reaches the match intro (Rod Laver Arena, Roddick against Henin-Hardenne, 3D photographers through VU1).
+Then the main thread spins in `0x1000B4`, a walk over VIF packets that patches each `UNPACK` (`0x6C`) until the
+`MSCNT`+IRQ code (`0x97`): the packet address comes from a DMA tag table (`0x1B81A0`) indexed by halfwords the code
+reads from VU memory (`0x110082BC`), and those are garbage, so the walk reads random memory for ever.
+
 ## Status
 
-Reaches the main menu (Arcade, Exhibition, Tutorial, Pro Tour, Challenge, Spectator, Trophy Room, Options) with its
-movie background. The movie shows thin vertical streaks. Next: a match, through Exhibition, capturing each new
-overlay.
+Boots, menus, Exhibition setup and the match intro work; the match itself stalls on the VU-produced index list above.
