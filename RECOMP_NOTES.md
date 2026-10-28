@@ -137,6 +137,17 @@ half read it, so Q was `1 / 2170` style garbage instead of `1 / w`. Upper writes
 (boubou666/PS2Recomp branch `sctpt2/vu-vf0-discard`, with a test), and the match draws its court, players, line judges
 and stadium.
 
+### Players teleported into the net between points
+
+After each point the player-update thread (overlay `0x4B6098`) builds a previous point 10 cm behind the new position,
+`new - d / |d| * 0.1`. For a player who has not moved `|d|` is 0, so the previous point is 0/0 * 0.1 and, scaled by
+100 for the net test, overflows to the float maximum (`0xFFFFFFFF`). The collision routine (`0x497338`) asks `0x10FB20`
+(a VU0 test through `0x1000B4`) whether the segment from there crosses the net; in the port it reports a crossing,
+the routine returns flags 3 with the crossing point (0, y, 0), and that point becomes the player's anchor and serve
+position (tables at `0x355424` and `0x2BA000`): the player appeared in the middle of the net. PCSX2 keeps the player
+in place. `sct2_overrides.cpp` answers "no crossing" for a segment that starts from an overflowed point; with it the
+point, replay and next serve follow the same sequence as PCSX2.
+
 ## Status
 
 Boots, menus, Exhibition setup, the match intro and play work, with the 3D court, players and stadium drawn.
