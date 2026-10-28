@@ -113,10 +113,31 @@ namespace
         std::cerr << "[sct2] capturing .staytrash overlays into " << capture.dir << std::endl;
     }
 
+    constexpr uint32_t kNetCrossingTest = 0x0010FB20u;
+
+    bool overflowed(uint32_t bits) { return ((bits >> 23) & 0xFFu) >= 0xE0u; }
+
+    // A player who has not moved gets a previous point of 0/0 * 0.1, which overflows to the float maximum, and the
+    // VU0 test then reports the segment from there as crossing the net: the player lands in the net. The console
+    // keeps the player in place, so such a segment is a miss.
+    void netCrossingTestSkippingOverflow(uint8_t *rdram, R5900Context *ctx, PS2Runtime *runtime)
+    {
+        uint32_t from[3];
+        std::memcpy(from, rdram + (getRegU32(ctx, 4) & 0x1FFFFFFu), sizeof(from));
+        if (overflowed(from[0]) || overflowed(from[2]))
+        {
+            setReturnS32(ctx, 0);
+            ctx->pc = getRegU32(ctx, 31);
+            return;
+        }
+        sub_0010FB20_0x10fb20(rdram, ctx, runtime);
+    }
+
     void applySmashCourtTennis2(PS2Runtime &runtime)
     {
         runtime.configureReservedMemory(kReservedBase, kReservedTop, kMainStackBottom);
         runtime.registerFunction(kSceSifSearchModuleByName, searchModuleByNameUnknown);
+        runtime.registerFunction(kNetCrossingTest, netCrossingTestSkippingOverflow);
 
         // The game data sits in raw sectors outside the ISO 9660 file system, read by LSN.
         PS2Runtime::IoPaths paths = PS2Runtime::getIoPaths();
