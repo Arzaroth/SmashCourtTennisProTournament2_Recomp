@@ -13,6 +13,26 @@
 
 namespace
 {
+    // The native target by default: the GS translated to OpenGL, the IOP modules recompiled (scripts/recomp_iop.sh),
+    // the SPU2 and the IOP on the host clock. The runtime reads these switches at different points of its start, some
+    // before game overrides apply, so they are set before main; a value already in the environment wins.
+    [[maybe_unused]] const bool kNativeDefaults = []
+    {
+        constexpr const char *kDefaults[][2] = {{"PS2X_GS_RENDERER", "native"}, {"PS2X_IOP_NATIVE", "1"},
+                                                {"PS2X_SPU2_WALLCLOCK", "1"}, {"PS2X_IOP_WALLCLOCK", "1"}};
+        for (const auto &[name, value] : kDefaults)
+        {
+            if (std::getenv(name))
+                continue;
+#ifdef _WIN32
+            _putenv_s(name, value);
+#else
+            setenv(name, value, 0);
+#endif
+        }
+        return true;
+    }();
+
     // crt0 calls SetupThread(stack 0x01FF8000, size 0x8000): the main stack ends at the top of RAM, where the runtime
     // puts its interrupt and callback stacks by default. Keep them in the kernel RAM below the ELF instead.
     constexpr uint32_t kReservedBase = 0x00080000u;
