@@ -171,6 +171,9 @@ layer at a time, each checked with a boot and a match:
   values stay invisible with it: a 4-bit read of a live CT32 target goes through GS memory, which does not carry the
   target's alpha bits, which is the back end's target/memory coherence (VP2S's rework). Reading indexed textures
   from the CLUT buffer instead of GS memory at CBP (`native/gs-clut-buffer`) changed nothing here.
+  VP2S's page-versioned coherence between targets and GS memory (`native/gs-backend` 5112816) fixes it: the card's
+  values and the memory card prompt's text draw as on the CPU GS. Still open on the OpenGL GS: the net (`PSMT4` at
+  block 12172) keeps its holes, and the prompt's `(PS2)` symbol draws as solid blocks.
 - Sound on the host clock (`PS2X_SPU2_WALLCLOCK=1 PS2X_IOP_WALLCLOCK=1`): 48 kHz exactly (240000 samples per 5 s),
   no underruns, the same voices as on the IOP clock. The game streams no AutoDMA (`adma=0`). Recorded with
   `PS2X_SPU2_WAV` over 150 s (logos, menu movie, a match), the output has, second by second, the zero crossings
@@ -198,4 +201,4 @@ layer at a time, each checked with a boot and a match:
 
 Boots, menus, player select, Exhibition and World Tournament matches with music and sound effects, on the native
 target by default (GS on OpenGL at 2x, IOP modules recompiled, sound and frames on the host clock, 60 fps). Open: the
-player card's statistics and the net texture on the OpenGL GS; the memory card and the other modes are not checked yet.
+net texture on the OpenGL GS; the memory card and the other modes are not checked yet.

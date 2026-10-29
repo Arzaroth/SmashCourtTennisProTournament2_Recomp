@@ -41,7 +41,7 @@ frames paced by the PC clock instead of the vblank: 60 fps in menus and matches.
 | Music and sound effects | ✅ |
 | Matches: court, players, stadium, HUD, replays | ✅ |
 | Native target: GS on OpenGL (no GS emulation), IOP modules recompiled, sound and frames on the PC clock | ✅ |
-| Player card statistics and the net's texture on the OpenGL GS (the card is right on the CPU GS) | 🔧 |
+| The net's texture on the OpenGL GS (garbled where the CPU GS shows the mesh) | 🔧 |
 | Memory card: save and load | ⏳ |
 | Other modes (Pro Tour, Challenge, Spectator, Tutorial) | ⏳ |
 
