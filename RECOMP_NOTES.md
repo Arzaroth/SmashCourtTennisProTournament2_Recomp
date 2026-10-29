@@ -177,7 +177,9 @@ layer at a time, each checked with a boot and a match:
 - Since `native/renderer` 4674b8b presents on the GPU, `PS2X_FRAME_DUMP` writes nothing until the frame-dump fix
   (native/renderer 175ed5c); `PS2X_GS_NATIVE_CPUPRESENT=1` keeps the CPU presentation for scripted checks.
 
-The frame loop on the host clock (FramePacer) is next.
+- Frame loop: not needed for 60. The game copies each frame into one display buffer (DISPFB1 stays `0x5148C`), so
+  `display flips` does not count its frames; during a match the EE is idle about 70% of its cycles waiting for the
+  vblank, with no catch-up, so it holds its rate on the vblank grid. FramePacer only matters for a cap above 60.
 
 ## Status
 
