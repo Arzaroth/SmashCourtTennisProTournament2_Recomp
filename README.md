@@ -106,6 +106,13 @@ the `.text` functions only overlays call to `recomp/function_bounds.csv`), `scri
 `scripts/recomp_overlays.sh` and `scripts/build_runtime.sh` compile it in. Until then the game stops where it needs
 an overlay that is not compiled yet (a `missing-target` line in the log).
 
+The game runs on the native target by default: the GS drawn with OpenGL (`PS2X_GS_RENDERER=native`), the IOP
+modules recompiled (`PS2X_IOP_NATIVE=1`), the SPU2 and the IOP on the host clock (`PS2X_SPU2_WALLCLOCK=1`,
+`PS2X_IOP_WALLCLOCK=1`); a value set in the environment wins. The game loads its IOP modules from memory, so they are
+recompiled from a run's dump: a run with `PS2X_IOP_DUMP_MODULES=game/iop` writes them, then
+`scripts/recomp_iop.sh game/iop` (-> `generated/iop/`) and `scripts/build_runtime.sh` compile them in. A module that
+is not compiled, or whose file differs, runs in the IOP interpreter as before.
+
 `JOBS=<n>` sets the build parallelism of every script (default: all cores). `scripts/build_runtime.sh Release` or
 `Debug` picks another build type, and `CXX` another compiler (Clang is used when it is installed).
 `scripts/sct2run.sh <name> <seconds> [VAR=value...]` runs the game for that long with a state dump every 5 seconds,

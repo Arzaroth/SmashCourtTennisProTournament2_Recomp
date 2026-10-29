@@ -156,6 +156,29 @@ microprograms `0x158` (the segment's frame) and `0x268` then find the crossing. 
 is a NaN there, `max - from` returns it with its sign bit set and every box is rejected. So the difference with PCSX2
 is either that PCSX2 never builds this start point or its NaN handling; which one holds on the console is not known.
 
+## The native target
+
+The port follows the other ports onto boubou666/PS2Recomp `native/renderer` (no paraLLEl-GS, no GS emulation), one
+layer at a time, each checked with a boot and a match:
+
+- GS native (`PS2X_GS_RENDERER=native`, OpenGL): boot, menus, player select and a match draw right with no code
+  change, except two textures. The player card's stat values show only fragments of their glyphs and the net texture
+  (`PSMT4` 64x64 at block 12172) is garbled; the CPU GS draws both right on the same build, and sampling GS memory
+  instead of render targets (`PS2X_GS_NATIVE_MEMORY_READS=1`) gives the same picture, so the bytes the native back
+  end leaves in GS memory are already wrong. Handed to the back end's coherence work (VP2S, f2f) with a CPU-GS trace
+  across the card.
+- Sound on the host clock (`PS2X_SPU2_WALLCLOCK=1 PS2X_IOP_WALLCLOCK=1`): 48 kHz exactly (240000 samples per 5 s),
+  no underruns, the same voices as on the IOP clock. The game streams no AutoDMA (`adma=0`).
+- IOP modules recompiled (`PS2X_IOP_NATIVE=1`): all 12 modules the game loads (pad, multitap, memory card, the sound
+  drivers modhsyn/modmidi/modmsin/modsein and their helpers, filectrl) recompile with nothing left to the
+  interpreter. They come from one EE buffer, so every dump has its name; `scripts/recomp_iop.sh` names each after its
+  dump file. filectrl's checksum loop branches back into the delay slot of the branch before it, which
+  `tools/iop_recomp.py` emitted without a label: fixed on `native/iop-recomp-slot-label` (9098b17).
+- Since `native/renderer` 4674b8b presents on the GPU, `PS2X_FRAME_DUMP` writes nothing until the frame-dump fix
+  (native/renderer 175ed5c); `PS2X_GS_NATIVE_CPUPRESENT=1` keeps the CPU presentation for scripted checks.
+
+The frame loop on the host clock (FramePacer) is next.
+
 ## Status
 
 Boots, menus, Exhibition setup, the match intro and play work, with the 3D court, players and stadium drawn.
