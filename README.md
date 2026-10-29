@@ -8,12 +8,12 @@ Not an emulator: the game's own MIPS R5900 code, rebuilt as a native program on 
 ![Platform](https://img.shields.io/badge/platform-Linux-1b8cff)
 ![Compiler](https://img.shields.io/badge/compiler-Clang-1b8cff)
 ![Based on](https://img.shields.io/badge/based%20on-PS2Recomp-17a35b)
-![Status](https://img.shields.io/badge/status-bring--up-c94f4f)
+![Status](https://img.shields.io/badge/status-playable-17a35b)
 
 <img src="docs/screenshots/main_menu.jpg" width="49%"> <img src="docs/screenshots/title_screen.jpg" width="49%">
-<img src="docs/screenshots/match_play.jpg" width="49%"> <img src="docs/screenshots/player_card.jpg" width="49%">
+<img src="docs/screenshots/player_select.jpg" width="49%"> <img src="docs/screenshots/match_play.jpg" width="49%">
 
-<sub>Captured from the running port (640x448 internal resolution).</sub>
+<sub>Captured from the running port: the GS drawn with OpenGL at 1280x896, twice the PS2's resolution.</sub>
 
 </div>
 
@@ -27,21 +27,25 @@ Not an emulator: the game's own MIPS R5900 code, rebuilt as a native program on 
 
 ## Status
 
-**Bring-up.** The game boots, loads its IOP modules and code overlays, and reaches its main menu: the memory card
-prompt, the Dolby Pro Logic II logo, the title screen and the menu with its movie background.
+**Playable.** Exhibition and World Tournament matches play, with music and sound effects, on the native target: the GS
+drawn with OpenGL at twice the PS2's resolution, the game's IOP modules recompiled, the sound on the PC clock. The game
+holds its frame rate with the EE idle about 70% of a match.
 
 | Milestone | |
 |---|:---:|
 | Map and recompile the main ELF | ✅ |
 | Boot: EE kernel, the game's own IOP modules, raw sector reads from the disc image | ✅ |
-| Code overlays loaded into `.staytrash`, recompiled as overlay modules | 🔧 |
-| Logos and movies (menu movie streamed to the IPU by DMA) | 🔧 |
-| Title screen, menus | 🔧 |
-| Music and sound effects | ⏳ |
-| Matches | ⏳ |
+| Code overlays loaded into `.staytrash`, recompiled as overlay modules | ✅ |
+| Logos and movies (menu movie streamed to the IPU by DMA) | ✅ |
+| Title screen, menus, player select | ✅ |
+| Music and sound effects | ✅ |
+| Matches: court, players, stadium, HUD, replays | ✅ |
+| Native target: GS on OpenGL (no GS emulation), IOP modules recompiled, sound on the PC clock | ✅ |
+| Player card statistics and the net's texture on the OpenGL GS (the card is right on the CPU GS) | 🔧 |
 | Memory card: save and load | ⏳ |
+| Other modes (Pro Tour, Challenge, Spectator, Tutorial) | ⏳ |
 
-✅ works · 🔧 in progress · ⏳ not reached yet
+✅ works · 🔧 in progress · ⏳ not checked yet
 
 [RECOMP_NOTES.md](RECOMP_NOTES.md) records how the port is brought up, every fix and how it was found.
 
@@ -55,7 +59,7 @@ disc files ──► ps2_analyzer (+ Ghidra, hint lists) ──► recomp/sct2.t
                  ELF MPG uploads ──► ps2_vu_aot ──► generated/vu1/
                                   │
    PS2Recomp runtime: EE kernel HLE · DMAC · GIF/GS · VIF/VU0/VU1 ─┼─► ps2EntryRunner
-   PS2Recomp IOP:     R3000A interpreter running the game's own IRX · SPU2 · SIO2
+   PS2Recomp IOP:     the game's own IRX recompiled (tools/iop_recomp.py) · SPU2 · SIO2
 ```
 
 - The ELF has no symbols. `ps2_analyzer` maps the functions and binds the SCE SDK ones it recognises to the runtime's
@@ -66,7 +70,8 @@ disc files ──► ps2_analyzer (+ Ghidra, hint lists) ──► recomp/sct2.t
   the runtime at the disc image: the game reads its data by sector number from outside the ISO 9660 file system.
 
 The runtime is the `PS2Recomp/` git submodule: [boubou666/PS2Recomp](https://github.com/boubou666/PS2Recomp), for now
-branch `sctpt2/ipu-in-dma` (`main` plus the StartThread and toIPU DMA fixes waiting for review), shared with the
+branch `sctpt2/native` (`native/renderer`, the native target the ports share, plus SCTPT2's fixes waiting there for
+review), shared with the
 *Soulcalibur III*, *Twisted Metal: Black*, *Valkyrie Profile 2: Silmeria*, *The Lord of the Rings: The Third Age*,
 *Drakengard* and *Fighting for One Piece* recompilations. The top-level `CMakeLists.txt`
 builds its runtime, swaps its placeholder function table for the generated one and links the generated code,

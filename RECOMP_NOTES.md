@@ -162,11 +162,15 @@ The port follows the other ports onto boubou666/PS2Recomp `native/renderer` (no 
 layer at a time, each checked with a boot and a match:
 
 - GS native (`PS2X_GS_RENDERER=native`, OpenGL): boot, menus, player select and a match draw right with no code
-  change, except two textures. The player card's stat values show only fragments of their glyphs and the net texture
-  (`PSMT4` 64x64 at block 12172) is garbled; the CPU GS draws both right on the same build, and sampling GS memory
-  instead of render targets (`PS2X_GS_NATIVE_MEMORY_READS=1`) gives the same picture, so the bytes the native back
-  end leaves in GS memory are already wrong. Handed to the back end's coherence work (VP2S, f2f) with a CPU-GS trace
-  across the card.
+  change, except two textures: the player card's stat values and the net (`PSMT4` 64x64 at block 12172, garbled where
+  the CPU GS only shows a moire for lack of mipmaps). A CPU GS primitive dump during the card shows how the values are
+  drawn: sprites textured `PSMT4HH` at TBP 0, inside the CT32 frame buffer the game draws into (FRAME_1
+  `0x7F000000000A0000`: FBMSK `0x7F000000` writes only the top alpha bit). The font lives in the alpha nibbles of
+  the frame and is kept there across frames by that mask. The native back end applied FBMSK per whole channel, so
+  every draw wrote the whole alpha byte; partial alpha masks are kept since `native/gs-fbmsk-alpha` (10e1f0c). The
+  values stay invisible with it: a 4-bit read of a live CT32 target goes through GS memory, which does not carry the
+  target's alpha bits, which is the back end's target/memory coherence (VP2S's rework). Reading indexed textures
+  from the CLUT buffer instead of GS memory at CBP (`native/gs-clut-buffer`) changed nothing here.
 - Sound on the host clock (`PS2X_SPU2_WALLCLOCK=1 PS2X_IOP_WALLCLOCK=1`): 48 kHz exactly (240000 samples per 5 s),
   no underruns, the same voices as on the IOP clock. The game streams no AutoDMA (`adma=0`). Recorded with
   `PS2X_SPU2_WAV` over 150 s (logos, menu movie, a match), the output has, second by second, the zero crossings
@@ -186,4 +190,6 @@ layer at a time, each checked with a boot and a match:
 
 ## Status
 
-Boots, menus, Exhibition setup, the match intro and play work, with the 3D court, players and stadium drawn.
+Boots, menus, player select, Exhibition and World Tournament matches with music and sound effects, on the native
+target by default (GS on OpenGL at 2x, IOP modules recompiled, sound on the host clock). Open: the player card's
+statistics and the net texture on the OpenGL GS; the memory card and the other modes are not checked yet.
