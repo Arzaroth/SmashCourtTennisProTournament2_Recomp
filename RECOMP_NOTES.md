@@ -180,6 +180,7 @@ layer at a time, each checked with a boot and a match:
 - Frame loop: not needed for 60. The game copies each frame into one display buffer (DISPFB1 stays `0x5148C`), so
   `display flips` does not count its frames; during a match the EE is idle about 70% of its cycles waiting for the
   vblank, with no catch-up, so it holds its rate on the vblank grid. FramePacer only matters for a cap above 60.
+- Internal scale 2 (`PS2X_GS_SCALE=2`, 1280x896): menus and a match draw the same as at 1x, with the same ~70% idle EE.
 
 ## Status
 

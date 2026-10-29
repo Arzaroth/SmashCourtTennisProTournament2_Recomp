@@ -106,7 +106,7 @@ the `.text` functions only overlays call to `recomp/function_bounds.csv`), `scri
 `scripts/recomp_overlays.sh` and `scripts/build_runtime.sh` compile it in. Until then the game stops where it needs
 an overlay that is not compiled yet (a `missing-target` line in the log).
 
-The game runs on the native target by default: the GS drawn with OpenGL (`PS2X_GS_RENDERER=native`), the IOP
+The game runs on the native target by default: the GS drawn with OpenGL at twice the PS2's resolution (`PS2X_GS_RENDERER=native`, `PS2X_GS_SCALE=2`), the IOP
 modules recompiled (`PS2X_IOP_NATIVE=1`), the SPU2 and the IOP on the host clock (`PS2X_SPU2_WALLCLOCK=1`,
 `PS2X_IOP_WALLCLOCK=1`); a value set in the environment wins. The game loads its IOP modules from memory, so they are
 recompiled from a run's dump: a run with `PS2X_IOP_DUMP_MODULES=game/iop` writes them, then
