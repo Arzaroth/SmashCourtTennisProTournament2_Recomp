@@ -118,6 +118,10 @@ recompiled from a run's dump: a run with `PS2X_IOP_DUMP_MODULES=game/iop` writes
 `scripts/recomp_iop.sh game/iop` (-> `generated/iop/`) and `scripts/build_runtime.sh` compile them in. A module that
 is not compiled, or whose file differs, runs in the IOP interpreter as before.
 
+`scripts/remote_build.sh` builds the runner on another x86-64 Linux box over ssh instead (`REMOTE_HOST`, default
+`stallman`; it needs rsync, mise and the X11/OpenGL headers) and copies it back into `build/game`; this machine's
+FFmpeg is copied there once so the runner links the FFmpeg it runs with. The game still runs here.
+
 `JOBS=<n>` sets the build parallelism of every script (default: all cores). `scripts/build_runtime.sh Release` or
 `Debug` picks another build type, and `CXX` another compiler (Clang is used when it is installed).
 `scripts/sct2run.sh <name> <seconds> [VAR=value...]` runs the game for that long with a state dump every 5 seconds,
