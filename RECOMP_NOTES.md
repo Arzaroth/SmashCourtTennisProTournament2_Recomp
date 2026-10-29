@@ -194,7 +194,10 @@ layer at a time, each checked with a boot and a match:
   wait with `EeScheduler::waitHostDeadline` (native/frame-sleep, JC2): the main thread waits for the next deadline at
   the FramePacer cap while the other threads run, then the wake-up charges the EE the frame's real time, presents and
   counts the frame; the handler's wake-ups are still cancelled each frame. 300 game frames per 5 s in menus and a
-  match, fewer only while loading, EE on real time, no underruns. `SCT2_NATIVE_FRAMES=0` keeps the vblank loop. The game
+  match, fewer only while loading (169-274 in the loading windows since native/renderer d191191's idle waits), EE on
+  real time, no underruns; the sound, the menu movie's included, matches the vblank loop second by second (`PS2X_SPU2_WAV`).
+  The frame wait's return value is not read by its callers, so the replacement returns none. `SCT2_NATIVE_FRAMES=0`
+  keeps the vblank loop. The game
   copies each frame into one display buffer (DISPFB1 stays `0x5148C`), so `display flips` stays 0; `game frames`
   counts them.
 - Internal scale 2 (`PS2X_GS_SCALE=2`, 1280x896): menus and a match draw the same as at 1x, with the same ~70% idle EE.
