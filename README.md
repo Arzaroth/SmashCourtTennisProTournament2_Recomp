@@ -28,8 +28,8 @@ Not an emulator: the game's own MIPS R5900 code, rebuilt as a native program on 
 ## Status
 
 **Playable.** Exhibition and World Tournament matches play, with music and sound effects, on the native target: the GS
-drawn with OpenGL at twice the PS2's resolution, the game's IOP modules recompiled, the sound on the PC clock. The game
-holds its frame rate with the EE idle about 70% of a match.
+drawn with OpenGL at twice the PS2's resolution, the game's IOP modules recompiled, the sound on the PC clock, and its
+frames paced by the PC clock instead of the vblank: 60 fps in menus and matches.
 
 | Milestone | |
 |---|:---:|
@@ -40,7 +40,7 @@ holds its frame rate with the EE idle about 70% of a match.
 | Title screen, menus, player select | ✅ |
 | Music and sound effects | ✅ |
 | Matches: court, players, stadium, HUD, replays | ✅ |
-| Native target: GS on OpenGL (no GS emulation), IOP modules recompiled, sound on the PC clock | ✅ |
+| Native target: GS on OpenGL (no GS emulation), IOP modules recompiled, sound and frames on the PC clock | ✅ |
 | Player card statistics and the net's texture on the OpenGL GS (the card is right on the CPU GS) | 🔧 |
 | Memory card: save and load | ⏳ |
 | Other modes (Pro Tour, Challenge, Spectator, Tutorial) | ⏳ |

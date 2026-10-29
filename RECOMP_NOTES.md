@@ -183,13 +183,19 @@ layer at a time, each checked with a boot and a match:
 - Since `native/renderer` 4674b8b presents on the GPU, `PS2X_FRAME_DUMP` writes nothing until the frame-dump fix
   (native/renderer 175ed5c); `PS2X_GS_NATIVE_CPUPRESENT=1` keeps the CPU presentation for scripted checks.
 
-- Frame loop: not needed for 60. The game copies each frame into one display buffer (DISPFB1 stays `0x5148C`), so
-  `display flips` does not count its frames; during a match the EE is idle about 70% of its cycles waiting for the
-  vblank, with no catch-up, so it holds its rate on the vblank grid. FramePacer only matters for a cap above 60.
+- Frame loop on the host clock (vblanks out): the main thread ends each frame in `0x178EC8` (FlushCache,
+  CancelWakeupThread(main), SleepThread), woken by the vblank handler `0x178D98` once the frame interval has counted
+  down and the DMA paths are idle; the loader and sound threads run while it sleeps. `sct2_overrides.cpp` replaces that
+  wait with `EeScheduler::waitHostDeadline` (native/frame-sleep, JC2): the main thread waits for the next deadline at
+  the FramePacer cap while the other threads run, then the wake-up charges the EE the frame's real time, presents and
+  counts the frame; the handler's wake-ups are still cancelled each frame. 300 game frames per 5 s in menus and a
+  match, fewer only while loading, EE on real time, no underruns. `SCT2_NATIVE_FRAMES=0` keeps the vblank loop. The game
+  copies each frame into one display buffer (DISPFB1 stays `0x5148C`), so `display flips` stays 0; `game frames`
+  counts them.
 - Internal scale 2 (`PS2X_GS_SCALE=2`, 1280x896): menus and a match draw the same as at 1x, with the same ~70% idle EE.
 
 ## Status
 
 Boots, menus, player select, Exhibition and World Tournament matches with music and sound effects, on the native
-target by default (GS on OpenGL at 2x, IOP modules recompiled, sound on the host clock). Open: the player card's
-statistics and the net texture on the OpenGL GS; the memory card and the other modes are not checked yet.
+target by default (GS on OpenGL at 2x, IOP modules recompiled, sound and frames on the host clock, 60 fps). Open: the
+player card's statistics and the net texture on the OpenGL GS; the memory card and the other modes are not checked yet.
