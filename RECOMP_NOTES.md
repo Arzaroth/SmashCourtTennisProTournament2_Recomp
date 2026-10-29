@@ -168,7 +168,9 @@ layer at a time, each checked with a boot and a match:
   end leaves in GS memory are already wrong. Handed to the back end's coherence work (VP2S, f2f) with a CPU-GS trace
   across the card.
 - Sound on the host clock (`PS2X_SPU2_WALLCLOCK=1 PS2X_IOP_WALLCLOCK=1`): 48 kHz exactly (240000 samples per 5 s),
-  no underruns, the same voices as on the IOP clock. The game streams no AutoDMA (`adma=0`).
+  no underruns, the same voices as on the IOP clock. The game streams no AutoDMA (`adma=0`). Recorded with
+  `PS2X_SPU2_WAV` over 150 s (logos, menu movie, a match), the output has, second by second, the zero crossings
+  and level of the IOP-clock run, the menu movie's soundtrack included, with no clipping.
 - IOP modules recompiled (`PS2X_IOP_NATIVE=1`): all 12 modules the game loads (pad, multitap, memory card, the sound
   drivers modhsyn/modmidi/modmsin/modsein and their helpers, filectrl) recompile with nothing left to the
   interpreter. They come from one EE buffer, so every dump has its name; `scripts/recomp_iop.sh` names each after its
