@@ -1,8 +1,11 @@
 #include "game_overrides.h"
 #include "ps2_recompiled_functions.h"
 #include "ps2_runtime.h"
+#include "ps2_runtime_macros.h"
+#include "runtime/ee_scheduler.h"
 
 #include <algorithm>
+#include <chrono>
 #include <cstdlib>
 #include <cstring>
 #include <filesystem>
@@ -155,11 +158,58 @@ namespace
         sub_0010FB20_0x10fb20(rdram, ctx, runtime);
     }
 
+    // The frame wait: FlushCache, CancelWakeupThread(main), SleepThread until the vblank handler (0x178D98) has counted
+    // the frame interval down and wakes the main thread. On the native frame loop the main thread waits for the host
+    // frame deadline instead, the loader and sound threads running meanwhile, and the wake-up charges the EE the real
+    // time of the frame and presents it. The handler's wake-ups are cancelled each frame as before.
+    constexpr uint32_t kFrameWait = 0x00178EC8u;
+    constexpr uint32_t kMainThreadId = 0x00463358u;
+
+    void nativeFrameEnd(uint8_t *rdram, R5900Context *ctx, PS2Runtime *runtime)
+    {
+        using Clock = std::chrono::steady_clock;
+        static Clock::time_point s_deadline = Clock::now();
+        static Clock::time_point s_previousWake = Clock::now();
+        static uint64_t s_previousCycle = runtime->eeScheduler().currentCycle();
+
+        const uint32_t ra = getRegU32(ctx, 31);
+        uint32_t mainThread;
+        std::memcpy(&mainThread, rdram + kMainThreadId, sizeof(mainThread));
+        SET_GPR_U32(ctx, 4, mainThread);
+        sub_00195EF0_0x195ef0(rdram, ctx, runtime);
+
+        const uint32_t cap = runtime->framePacer().cap();
+        const Clock::time_point now = Clock::now();
+        s_deadline = cap == 0u ? now : std::max(s_deadline + std::chrono::microseconds(1000000 / cap), now);
+        runtime->eeScheduler().waitHostDeadline(
+            s_deadline,
+            [runtime]
+            {
+                EeScheduler &ee = runtime->eeScheduler();
+                const Clock::time_point wake = Clock::now();
+                const double seconds = std::chrono::duration<double>(wake - s_previousWake).count();
+                const uint64_t real = static_cast<uint64_t>(std::min(seconds, 0.1) * EeScheduler::kEeClockHz);
+                const uint64_t accounted = ee.currentCycle() - s_previousCycle;
+                if (real > accounted)
+                    ee.accountCycles(static_cast<uint32_t>(real - accounted));
+                s_previousWake = wake;
+                s_previousCycle = ee.currentCycle();
+                ee.presentGuestFrame();
+                runtime->noteGameFrame();
+            },
+            [ra](R5900Context &resume) { resume.pc = ra; });
+    }
+
     void applySmashCourtTennis2(PS2Runtime &runtime)
     {
         runtime.configureReservedMemory(kReservedBase, kReservedTop, kMainStackBottom);
         runtime.registerFunction(kSceSifSearchModuleByName, searchModuleByNameUnknown);
         runtime.registerFunction(kNetCrossingTest, netCrossingTestSkippingOverflow);
+        if (const char *frames = std::getenv("SCT2_NATIVE_FRAMES"); !(frames && frames[0] == '0'))
+        {
+            runtime.eeScheduler().setNativeFrames(true);
+            runtime.registerFunction(kFrameWait, nativeFrameEnd);
+        }
 
         // The game data sits in raw sectors outside the ISO 9660 file system, read by LSN.
         PS2Runtime::IoPaths paths = PS2Runtime::getIoPaths();
