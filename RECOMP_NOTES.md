@@ -148,6 +148,14 @@ position (tables at `0x355424` and `0x2BA000`): the player appeared in the middl
 in place. `sct2_overrides.cpp` answers "no crossing" for a segment that starts from an overflowed point; with it the
 point, replay and next serve follow the same sequence as PCSX2.
 
+The VU0 side is not the cause. VIF0's `MSCAL 0` is a box cull: for each net box (min, max) it subtracts the corners
+from both segment ends and keeps the box unless both ends are on the same outer side (status S flag, any negative
+component). With the start point `(0xFFFFFFFF, -50, 0xFFFFFFFF)` and the end `(-100, -50, 0)`, the PS2's own float
+rules (exponent 255 as a number) and an operand clamp to the float maximum both keep 5 boxes, as the port does;
+microprograms `0x158` (the segment's frame) and `0x268` then find the crossing. Only x86 NaN rules keep none: `0xFFFFFFFF`
+is a NaN there, `max - from` returns it with its sign bit set and every box is rejected. So the difference with PCSX2
+is either that PCSX2 never builds this start point or its NaN handling; which one holds on the console is not known.
+
 ## Status
 
 Boots, menus, Exhibition setup, the match intro and play work, with the 3D court, players and stadium drawn.
