@@ -189,7 +189,9 @@ namespace sct2
         static const Vu1Port s_mode = []
         {
             const char *value = std::getenv("SCT2_VU1_PORT");
-            if (!value || !*value || std::strcmp(value, "0") == 0)
+            if (!value || !*value)
+                return Vu1Port::On;
+            if (std::strcmp(value, "0") == 0)
                 return Vu1Port::Off;
             return std::strcmp(value, "check") == 0 ? Vu1Port::Check : Vu1Port::On;
         }();

@@ -11,7 +11,7 @@ namespace sct2
 {
     // SCT2_VU1_PORT: the VU1 program as C++ (generated/vu1lift, PS2Recomp/tools/vu1_lift.py) in the sandbox's place.
     // "check" runs it beside the sandbox on the same state and reports where they differ, the sandbox still drawing;
-    // "1" lets it draw. Unset or "0": the sandbox alone.
+    // unset or "1" lets it draw. "0": the sandbox alone.
     enum class Vu1Port
     {
         Off,
