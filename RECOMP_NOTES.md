@@ -200,7 +200,7 @@ layer at a time, each checked with a boot and a match:
   copies each frame into one display buffer (DISPFB1 stays `0x5148C`), so `display flips` stays 0; `game frames`
   counts them.
 - VU1 off the emulated path: every VU1 microprogram runs on the native sandbox (`ps2x::native::Vu1StreamAdapter`, from
-  sc3/native-vu1) and what it sends goes to the GL GS back end with its register writes (`gsWrites`), on the VIF1
+  native/renderer since 29eb7b7) and what it sends goes to the GL GS back end with its register writes (`gsWrites`), on the VIF1
   thread; the adapter's frame ends at the game's frame wait. The emulated VU1 runs nothing (`vu1 mscal=0`); menus, the
   player card, the intro and a match draw as before at 292-298 game frames per 5 s in a match (300 on VU1), no
   underruns. The net now draws right (a fine mesh with its white band, as on PCSX2): its holes came from the emulated
