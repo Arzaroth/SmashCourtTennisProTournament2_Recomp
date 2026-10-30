@@ -3,6 +3,8 @@
 #include "ps2_runtime.h"
 #include "ps2_runtime_macros.h"
 #include "runtime/ee_scheduler.h"
+#include "runtime/native/native_vif1.h"
+#include "runtime/native/native_vu1_stream.h"
 
 #include <algorithm>
 #include <chrono>
@@ -165,8 +167,54 @@ namespace
     constexpr uint32_t kFrameWait = 0x00178EC8u;
     constexpr uint32_t kMainThreadId = 0x00463358u;
 
+    // VU1 off the emulated path: every microprogram runs on the native sandbox and what it sends goes to the GL GS
+    // back end with its register writes, in stream order. The game's frame ends at its frame wait, after it has sent the
+    // frame. SCT2_NATIVE_VU1=0 leaves the programs on VU1.
+    bool g_nativeVu1 = false;
+    bool g_nativeVu1OnVif1Thread = false;
+
+    void nativeVu1FrameEnd()
+    {
+        if (!g_nativeVu1)
+            return;
+        if (g_nativeVu1OnVif1Thread)
+            ps2x::native::runOnVif1Thread([] { ps2x::native::Vu1StreamAdapter::instance().frameEnd(); });
+        else
+            ps2x::native::Vu1StreamAdapter::instance().frameEnd();
+    }
+
+    void installNativeVu1(PS2Runtime &runtime)
+    {
+        const char *gs = std::getenv("PS2X_GS_RENDERER");
+        const char *value = std::getenv("SCT2_NATIVE_VU1");
+        if (!(gs && std::strcmp(gs, "native") == 0) || (value && value[0] == '0'))
+            return;
+        ps2x::native::Vu1StreamAdapter::Config config;
+        config.screen.originX = 2048.0f - 320.0f;
+        config.screen.originY = 2048.0f - 224.0f;
+        config.screen.width = 640.0f;
+        config.screen.height = 448.0f;
+        config.choose = [](ps2x::native::Vu1StreamAdapter &, uint32_t)
+        { return ps2x::native::Vu1StreamAdapter::Choice::Sandbox; };
+        config.draw = [](ps2x::native::Vu1StreamAdapter &, uint32_t, bool) {};
+        config.gsWrites = true;
+        g_nativeVu1OnVif1Thread = runtime.memory().vif1Threaded();
+        config.onVif1Thread = g_nativeVu1OnVif1Thread;
+        ps2x::native::Vu1StreamAdapter::instance().install(config);
+        g_nativeVu1 = true;
+        std::cerr << "[sct2] native VU1: every program on the sandbox, drawn by the GS back end"
+                  << (g_nativeVu1OnVif1Thread ? ", on the VIF1 thread" : ", on the game thread") << std::endl;
+    }
+
+    void frameWaitVu1FrameEnd(uint8_t *rdram, R5900Context *ctx, PS2Runtime *runtime)
+    {
+        nativeVu1FrameEnd();
+        sub_00178EC8_0x178ec8(rdram, ctx, runtime);
+    }
+
     void nativeFrameEnd(uint8_t *rdram, R5900Context *ctx, PS2Runtime *runtime)
     {
+        nativeVu1FrameEnd();
         using Clock = std::chrono::steady_clock;
         static Clock::time_point s_deadline = Clock::now();
         static Clock::time_point s_previousWake = Clock::now();
@@ -205,11 +253,14 @@ namespace
         runtime.configureReservedMemory(kReservedBase, kReservedTop, kMainStackBottom);
         runtime.registerFunction(kSceSifSearchModuleByName, searchModuleByNameUnknown);
         runtime.registerFunction(kNetCrossingTest, netCrossingTestSkippingOverflow);
+        installNativeVu1(runtime);
         if (const char *frames = std::getenv("SCT2_NATIVE_FRAMES"); !(frames && frames[0] == '0'))
         {
             runtime.eeScheduler().setNativeFrames(true);
             runtime.registerFunction(kFrameWait, nativeFrameEnd);
         }
+        else if (g_nativeVu1)
+            runtime.registerFunction(kFrameWait, frameWaitVu1FrameEnd);
 
         // The game data sits in raw sectors outside the ISO 9660 file system, read by LSN.
         PS2Runtime::IoPaths paths = PS2Runtime::getIoPaths();
