@@ -45,7 +45,7 @@ frames paced by the PC clock instead of the vblank: 60 fps in menus and matches.
 | Ghost trails on the player card on the OpenGL GS | 🔧 |
 | Memory card: save and load (system data, loaded at boot) | ✅ |
 | Other modes: Pro Tour, Challenge, Spectator, Tutorial | ✅ |
-| Tutorial and Challenge practice court at full speed (about 50 fps now) | 🔧 |
+| Tutorial and Challenge practice court at full speed (about 52 fps now) | 🔧 |
 
 ✅ works · 🔧 in progress · ⏳ not checked yet
 

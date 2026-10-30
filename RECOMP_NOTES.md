@@ -225,5 +225,8 @@ the host clock, 60 fps). The memory card works: Options > SAVE writes the system
 (150 KB data, `icon.sys`, icon), a second save offers to overwrite it, the next boot loads it ("Load Successful") and
 Options > LOAD reads it back. Pro Tour (mode select, new player profile), Challenge (Shooting Service, hits and high
 score), Spectator (a computer match) and the Tutorial (lessons) work. Open: ghost trails on the player card; the
-practice court of the Tutorial and Challenge runs at about 50 fps (240-250 game frames per 5 s) where menus and
-matches run at 60.
+practice court of the Tutorial and Challenge runs at about 52 fps (260 game frames per 5 s) where menus and
+matches run at 60. It sends much more VU1 work than a match: with VIF1 on the EE thread the EE thread was 95% busy
+(237 frames per 5 s), mostly in the VU1 programs (`jit87` alone 14%), VIF unpacks and GifToNative. VIF1 and the VU1
+programs now run on their own thread by default (`PS2X_VIF1_THREAD=1`; matches stay at 300), where that work keeps the
+VIF1 thread about 80% busy; the rest of the gap is the speed of those VU1 programs.
