@@ -205,6 +205,11 @@ layer at a time, each checked with a boot and a match:
   player card, the intro and a match draw as before at 292-298 game frames per 5 s in a match (300 on VU1), no
   underruns. The net now draws right (a fine mesh with its white band, as on PCSX2): its holes came from the emulated
   VU1's packets reaching the GL back end, not from the texture. `SCT2_NATIVE_VU1=0` leaves the programs on VU1.
+- Movie pictures on the host clock: the menu movie's `sceMpegGetPicture` (runtime MPEG HLE) waited for vsyncs to
+  pace its pictures, the last vblank wait left in a native run. With native frames it now waits for the picture's
+  deadline on the host clock (native/mpeg-host-clock 8508fd6): 0 vsync waits in a 150 s run through the movie, menus
+  and a match, 300 game frames per 5 s outside loading, the movie advances every dump and its sound matches the
+  previous run second by second.
 - Internal scale 2 (`PS2X_GS_SCALE=2`, 1280x896): menus and a match draw the same as at 1x, with the same ~70% idle EE.
 
 ## Status
