@@ -41,11 +41,12 @@ frames paced by the PC clock instead of the vblank: 60 fps in menus and matches.
 | Music and sound effects | ✅ |
 | Matches: court, players, stadium, HUD, replays | ✅ |
 | Native target: GS on OpenGL (no GS emulation), IOP modules recompiled, sound and frames on the PC clock | ✅ |
-| VU1 programs translated to native draws (today they run on the VU1 sandbox, an interpreter, with GS register writes: emulation still to remove) | 🔧 |
+| VU1 program lifted to C++ (`tools/vu1_lift.py`), exact against the sandbox in every mode it was checked in | ✅ |
+| VU1 output as native draws (the lifted program still writes GIF packets that go through GS register writes: emulation still to remove) | 🔧 |
 | Ghost trails on the player card on the OpenGL GS | 🔧 |
 | Memory card: save and load (system data, loaded at boot) | ✅ |
 | Other modes: Pro Tour, Challenge, Spectator, Tutorial | ✅ |
-| Tutorial and Challenge practice court at full speed (about 52 fps now) | 🔧 |
+| Tutorial and Challenge practice court at full speed | ✅ |
 
 ✅ works · 🔧 in progress · ⏳ not checked yet
 
