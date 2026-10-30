@@ -41,7 +41,7 @@ frames paced by the PC clock instead of the vblank: 60 fps in menus and matches.
 | Music and sound effects | ✅ |
 | Matches: court, players, stadium, HUD, replays | ✅ |
 | Native target: GS on OpenGL (no GS emulation), IOP modules recompiled, sound and frames on the PC clock | ✅ |
-| VU1 programs off the emulated VU1 (native sandbox, drawn by the OpenGL GS) | ✅ |
+| VU1 programs translated to native draws (today they run on the VU1 sandbox, an interpreter, with GS register writes: emulation still to remove) | 🔧 |
 | Ghost trails on the player card on the OpenGL GS | 🔧 |
 | Memory card: save and load (system data, loaded at boot) | ✅ |
 | Other modes: Pro Tour, Challenge, Spectator, Tutorial | ✅ |

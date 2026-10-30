@@ -204,12 +204,15 @@ layer at a time, each checked with a boot and a match:
   keeps the vblank loop. The game
   copies each frame into one display buffer (DISPFB1 stays `0x5148C`), so `display flips` stays 0; `game frames`
   counts them.
-- VU1 off the emulated path: every VU1 microprogram runs on the native sandbox (`ps2x::native::Vu1StreamAdapter`, from
+- VU1 on the sandbox, emulation still to remove: every VU1 microprogram runs on the native sandbox (`ps2x::native::Vu1StreamAdapter`, from
   native/renderer since 29eb7b7) and what it sends goes to the GL GS back end with its register writes (`gsWrites`), on the VIF1
   thread; the adapter's frame ends at the game's frame wait. The emulated VU1 runs nothing (`vu1 mscal=0`); menus, the
   player card, the intro and a match draw as before at 292-298 game frames per 5 s in a match (300 on VU1), no
   underruns. The net now draws right (a fine mesh with its white band, as on PCSX2): its holes came from the emulated
   VU1's packets reaching the GL back end, not from the texture. `SCT2_NATIVE_VU1=0` leaves the programs on VU1.
+  The sandbox is still a VU1 interpreter (AOT-compiled programs) whose output goes through the GS register state
+  (`gsWrites`): emulation under another name, kept only as a diagnostic reference. The goal is native draws built from
+  the game's own data (the VIF1 packets' vertices, matrices and GS setup) without running the microprograms.
 - Movie pictures on the host clock: the menu movie's `sceMpegGetPicture` (runtime MPEG HLE) waited for vsyncs to
   pace its pictures, the last vblank wait left in a native run. With native frames it now waits for the picture's
   deadline on the host clock (native/mpeg-host-clock 8508fd6): 0 vsync waits in a 150 s run through the movie, menus
@@ -220,7 +223,7 @@ layer at a time, each checked with a boot and a match:
 ## Status
 
 Boots, menus, player select, Exhibition and World Tournament matches with music and sound effects, on the native
-target by default (GS on OpenGL at 2x, IOP modules recompiled, VU1 programs on the native sandbox, sound and frames on
+target by default (GS on OpenGL at 2x, IOP modules recompiled, VU1 programs still on the sandbox, sound and frames on
 the host clock, 60 fps). The memory card works: Options > SAVE writes the system data to `game/mc0/BASLUS-20933SCSYS/`
 (150 KB data, `icon.sys`, icon), a second save offers to overwrite it, the next boot loads it ("Load Successful") and
 Options > LOAD reads it back. Pro Tour (mode select, new player profile), Challenge (Shooting Service, hits and high
