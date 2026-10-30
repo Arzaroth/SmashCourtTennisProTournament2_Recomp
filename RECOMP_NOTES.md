@@ -173,9 +173,8 @@ layer at a time, each checked with a boot and a match:
   from the CLUT buffer instead of GS memory at CBP (`native/gs-clut-buffer`) changed nothing here.
   VP2S's page-versioned coherence between targets and GS memory (`native/gs-backend` 5112816) fixes it: the card's
   values and the memory card prompt's text draw as on the CPU GS, the prompt's `(PS2)` symbol and the card's
-  punctuation since 80f30b7. Still open on the OpenGL GS: the net (`PSMT4` at block 12172) keeps its holes (GS memory
-  holds the right mesh and no render target overlaps it), and the player card shows white ghost trails of the player
-  that the CPU GS does not draw.
+  punctuation since 80f30b7. Still open on the OpenGL GS: the player card shows white ghost trails of the player that
+  the CPU GS does not draw (the net's holes went with the VU1 sandbox, below).
 - Sound on the host clock (`PS2X_SPU2_WALLCLOCK=1 PS2X_IOP_WALLCLOCK=1`): 48 kHz exactly (240000 samples per 5 s),
   no underruns, the same voices as on the IOP clock. The game streams no AutoDMA (`adma=0`). Recorded with
   `PS2X_SPU2_WAV` over 150 s (logos, menu movie, a match), the output has, second by second, the zero crossings
@@ -200,10 +199,17 @@ layer at a time, each checked with a boot and a match:
   keeps the vblank loop. The game
   copies each frame into one display buffer (DISPFB1 stays `0x5148C`), so `display flips` stays 0; `game frames`
   counts them.
+- VU1 off the emulated path: every VU1 microprogram runs on the native sandbox (`ps2x::native::Vu1StreamAdapter`, from
+  sc3/native-vu1) and what it sends goes to the GL GS back end with its register writes (`gsWrites`), on the VIF1
+  thread; the adapter's frame ends at the game's frame wait. The emulated VU1 runs nothing (`vu1 mscal=0`); menus, the
+  player card, the intro and a match draw as before at 292-298 game frames per 5 s in a match (300 on VU1), no
+  underruns. The net now draws right (a fine mesh with its white band, as on PCSX2): its holes came from the emulated
+  VU1's packets reaching the GL back end, not from the texture. `SCT2_NATIVE_VU1=0` leaves the programs on VU1.
 - Internal scale 2 (`PS2X_GS_SCALE=2`, 1280x896): menus and a match draw the same as at 1x, with the same ~70% idle EE.
 
 ## Status
 
 Boots, menus, player select, Exhibition and World Tournament matches with music and sound effects, on the native
-target by default (GS on OpenGL at 2x, IOP modules recompiled, sound and frames on the host clock, 60 fps). Open: the
-net texture on the OpenGL GS; the memory card and the other modes are not checked yet.
+target by default (GS on OpenGL at 2x, IOP modules recompiled, VU1 programs on the native sandbox, sound and frames on
+the host clock, 60 fps). Open: ghost trails on the player card; saving to the memory card and the other modes are not
+checked yet.
