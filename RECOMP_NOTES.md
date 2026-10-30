@@ -216,5 +216,6 @@ layer at a time, each checked with a boot and a match:
 
 Boots, menus, player select, Exhibition and World Tournament matches with music and sound effects, on the native
 target by default (GS on OpenGL at 2x, IOP modules recompiled, VU1 programs on the native sandbox, sound and frames on
-the host clock, 60 fps). Open: ghost trails on the player card; saving to the memory card and the other modes are not
-checked yet.
+the host clock, 60 fps). The memory card works: Options > SAVE writes the system data to `game/mc0/BASLUS-20933SCSYS/`
+(150 KB data, `icon.sys`, icon), a second save offers to overwrite it, the next boot loads it ("Load Successful") and
+Options > LOAD reads it back. Open: ghost trails on the player card; the other modes are not checked yet.
