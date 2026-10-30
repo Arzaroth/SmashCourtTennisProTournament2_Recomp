@@ -40,6 +40,16 @@ if(SCT2_IOP_SOURCES)
         PROPERTIES SKIP_UNITY_BUILD_INCLUSION ON)
 endif()
 
+# The VU1 programs as C++ (PS2Recomp/tools/vu1_lift.py on recomp/vu1_lift_spec.json, run by scripts/compile_vu1.sh).
+file(GLOB SCT2_VU1_LIFT_SOURCES CONFIGURE_DEPENDS "${SCT2_GENERATED_DIR}/vu1lift/*.cpp")
+if(SCT2_VU1_LIFT_SOURCES)
+    add_library(sct2_vu1_lift OBJECT ${SCT2_VU1_LIFT_SOURCES})
+    target_link_libraries(sct2_vu1_lift PRIVATE ps2_runtime)
+    set_target_properties(sct2_vu1_lift PROPERTIES UNITY_BUILD OFF)
+    target_compile_options(sct2_vu1_lift PRIVATE -O2)
+    target_sources(ps2EntryRunner PRIVATE $<TARGET_OBJECTS:sct2_vu1_lift>)
+endif()
+
 file(GLOB SCT2_OVERLAY_DIRS LIST_DIRECTORIES true CONFIGURE_DEPENDS "${SCT2_GENERATED_DIR}/overlays/*")
 set(SCT2_OVERLAY_SOURCES "")
 foreach(_sct2_overlay_dir ${SCT2_OVERLAY_DIRS})
