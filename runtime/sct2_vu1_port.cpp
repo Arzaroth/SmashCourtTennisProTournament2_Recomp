@@ -29,7 +29,7 @@ namespace sct2
 
         struct Stats
         {
-            uint64_t ported = 0, checked = 0, mismatches = 0, unknown = 0;
+            uint64_t ported = 0, checked = 0, mismatches = 0, unknown = 0, sandbox = 0;
             std::map<uint32_t, uint64_t> mismatched;
         };
 
@@ -198,7 +198,12 @@ namespace sct2
 
     bool vu1Ported(Vu1StreamAdapter &adapter, uint32_t)
     {
-        return vu1PortMode() != Vu1Port::Off && resident(adapter);
+        if (vu1PortMode() == Vu1Port::Off)
+            return false;
+        if (resident(adapter))
+            return true;
+        ++g_state.stats.sandbox;
+        return false;
     }
 
     void vu1PortDraw(Vu1StreamAdapter &adapter, uint32_t pc, bool resumed)
@@ -230,9 +235,11 @@ namespace sct2
         if (vu1PortMode() == Vu1Port::Off || ++s_frames % 600u != 0u)
             return;
         Stats &s = g_state.stats;
-        std::fprintf(stderr, "[sct2:vu1] lifted over 600 frames: %llu drawn, %llu checked, %llu mismatches, %llu unknown targets",
+        std::fprintf(stderr, "[sct2:vu1] lifted over 600 frames: %llu drawn, %llu checked, %llu mismatches, %llu unknown targets, "
+                     "%llu on the sandbox",
                      static_cast<unsigned long long>(s.ported), static_cast<unsigned long long>(s.checked),
-                     static_cast<unsigned long long>(s.mismatches), static_cast<unsigned long long>(s.unknown));
+                     static_cast<unsigned long long>(s.mismatches), static_cast<unsigned long long>(s.unknown),
+                     static_cast<unsigned long long>(s.sandbox));
         for (const auto &[pc, count] : s.mismatched)
             std::fprintf(stderr, " %#x=%llu", pc, static_cast<unsigned long long>(count));
         std::fprintf(stderr, "\n");
