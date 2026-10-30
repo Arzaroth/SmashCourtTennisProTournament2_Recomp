@@ -1,4 +1,5 @@
 #include "game_overrides.h"
+#include "sct2_vu1_port.h"
 #include "ps2_recompiled_functions.h"
 #include "ps2_runtime.h"
 #include "ps2_runtime_macros.h"
@@ -13,6 +14,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <map>
 #include <set>
 #include <vector>
 
@@ -174,10 +176,36 @@ namespace
     bool g_nativeVu1 = false;
     bool g_nativeVu1OnVif1Thread = false;
 
+    // SCT2_VU1_STATS=1: the VU1 programs the game starts (resident microcode, start PC), counted and printed every
+    // 600 frames, to tell which programs a scene runs.
+    bool g_vu1Stats = false;
+    std::map<std::pair<uint64_t, uint32_t>, uint64_t> g_vu1Calls;
+
+    void reportVu1Calls()
+    {
+        static uint32_t s_frames = 0;
+        if (!g_vu1Stats || ++s_frames % 600u != 0u)
+            return;
+        std::cerr << "[sct2] VU1 programs over 600 frames:";
+        for (const auto &[entry, count] : g_vu1Calls)
+            std::cerr << " " << std::hex << (entry.first >> 48) << ":" << entry.second << std::dec << "=" << count;
+        std::cerr << std::endl;
+        g_vu1Calls.clear();
+    }
+
     void nativeVu1FrameEnd()
     {
         if (!g_nativeVu1)
             return;
+        const auto report = []
+        {
+            reportVu1Calls();
+            sct2::vu1PortReport();
+        };
+        if (g_nativeVu1OnVif1Thread)
+            ps2x::native::runOnVif1Thread(report);
+        else
+            report();
         if (g_nativeVu1OnVif1Thread)
             ps2x::native::runOnVif1Thread([] { ps2x::native::Vu1StreamAdapter::instance().frameEnd(); });
         else
@@ -195,9 +223,15 @@ namespace
         config.screen.originY = 2048.0f - 224.0f;
         config.screen.width = 640.0f;
         config.screen.height = 448.0f;
-        config.choose = [](ps2x::native::Vu1StreamAdapter &, uint32_t)
-        { return ps2x::native::Vu1StreamAdapter::Choice::Sandbox; };
-        config.draw = [](ps2x::native::Vu1StreamAdapter &, uint32_t, bool) {};
+        g_vu1Stats = std::getenv("SCT2_VU1_STATS") != nullptr;
+        config.choose = [](ps2x::native::Vu1StreamAdapter &adapter, uint32_t pc)
+        {
+            if (g_vu1Stats)
+                ++g_vu1Calls[{fnv1a(adapter.code(), 16u * 1024u), pc}];
+            return sct2::vu1Ported(adapter, pc) ? ps2x::native::Vu1StreamAdapter::Choice::Port
+                                                : ps2x::native::Vu1StreamAdapter::Choice::Sandbox;
+        };
+        config.draw = sct2::vu1PortDraw;
         config.gsWrites = true;
         g_nativeVu1OnVif1Thread = runtime.memory().vif1Threaded();
         config.onVif1Thread = g_nativeVu1OnVif1Thread;
