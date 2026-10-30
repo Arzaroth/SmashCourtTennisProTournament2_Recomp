@@ -71,6 +71,11 @@ list (`0x176760`, tasks of 0x80 bytes with the function at `+0` and the next tas
 
 First overlay: `0x46EA80`-`0x4776D8`, 82 sources (68 decode errors, all in data at its end).
 
+Pro Tour and Challenge each load overlays of their own (`ovl_a4ee7a1b5f8fe4be`, `0x46EA80`-`0x6AD44C`, 587 sources, and
+`ovl_9f389073fd591f8a`); without them the task list's call to `0x46EE90` found no code and the main thread stopped on
+Pro Tour's loading screen. Captured with a run into each mode, then `update_bounds.sh`, `recomp.sh` and
+`recomp_overlays.sh` as above.
+
 ## The black screen: StartThread's return value
 
 Frames were presented but black: the scene task (`0x126A08`, state byte at task `+0x14`, jump table `0x207C70`)
@@ -218,4 +223,7 @@ Boots, menus, player select, Exhibition and World Tournament matches with music 
 target by default (GS on OpenGL at 2x, IOP modules recompiled, VU1 programs on the native sandbox, sound and frames on
 the host clock, 60 fps). The memory card works: Options > SAVE writes the system data to `game/mc0/BASLUS-20933SCSYS/`
 (150 KB data, `icon.sys`, icon), a second save offers to overwrite it, the next boot loads it ("Load Successful") and
-Options > LOAD reads it back. Open: ghost trails on the player card; the other modes are not checked yet.
+Options > LOAD reads it back. Pro Tour (mode select, new player profile), Challenge (Shooting Service, hits and high
+score), Spectator (a computer match) and the Tutorial (lessons) work. Open: ghost trails on the player card; the
+practice court of the Tutorial and Challenge runs at about 50 fps (240-250 game frames per 5 s) where menus and
+matches run at 60.

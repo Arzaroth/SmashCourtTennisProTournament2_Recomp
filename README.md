@@ -44,7 +44,8 @@ frames paced by the PC clock instead of the vblank: 60 fps in menus and matches.
 | VU1 programs off the emulated VU1 (native sandbox, drawn by the OpenGL GS) | ✅ |
 | Ghost trails on the player card on the OpenGL GS | 🔧 |
 | Memory card: save and load (system data, loaded at boot) | ✅ |
-| Other modes (Pro Tour, Challenge, Spectator, Tutorial) | ⏳ |
+| Other modes: Pro Tour, Challenge, Spectator, Tutorial | ✅ |
+| Tutorial and Challenge practice court at full speed (about 50 fps now) | 🔧 |
 
 ✅ works · 🔧 in progress · ⏳ not checked yet
 
@@ -70,9 +71,8 @@ disc files ──► ps2_analyzer (+ Ghidra, hint lists) ──► recomp/sct2.t
 - `runtime/sct2_overrides.cpp` holds the game-specific bindings, matched to the ELF by entry point and CRC. It points
   the runtime at the disc image: the game reads its data by sector number from outside the ISO 9660 file system.
 
-The runtime is the `PS2Recomp/` git submodule: [boubou666/PS2Recomp](https://github.com/boubou666/PS2Recomp), for now
-branch `sctpt2/native` (`native/renderer`, the native target the ports share, plus SCTPT2's fixes waiting there for
-review), shared with the
+The runtime is the `PS2Recomp/` git submodule: [boubou666/PS2Recomp](https://github.com/boubou666/PS2Recomp), branch
+`native/renderer` (the native target the ports share), shared with the
 *Soulcalibur III*, *Twisted Metal: Black*, *Valkyrie Profile 2: Silmeria*, *The Lord of the Rings: The Third Age*,
 *Drakengard* and *Fighting for One Piece* recompilations. The top-level `CMakeLists.txt`
 builds its runtime, swaps its placeholder function table for the generated one and links the generated code,
