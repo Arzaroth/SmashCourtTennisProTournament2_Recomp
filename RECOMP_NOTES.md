@@ -204,15 +204,23 @@ layer at a time, each checked with a boot and a match:
   keeps the vblank loop. The game
   copies each frame into one display buffer (DISPFB1 stays `0x5148C`), so `display flips` stays 0; `game frames`
   counts them.
-- VU1 on the sandbox, emulation still to remove: every VU1 microprogram runs on the native sandbox (`ps2x::native::Vu1StreamAdapter`, from
-  native/renderer since 29eb7b7) and what it sends goes to the GL GS back end with its register writes (`gsWrites`), on the VIF1
-  thread; the adapter's frame ends at the game's frame wait. The emulated VU1 runs nothing (`vu1 mscal=0`); menus, the
-  player card, the intro and a match draw as before at 292-298 game frames per 5 s in a match (300 on VU1), no
-  underruns. The net now draws right (a fine mesh with its white band, as on PCSX2): its holes came from the emulated
-  VU1's packets reaching the GL back end, not from the texture. `SCT2_NATIVE_VU1=0` leaves the programs on VU1.
-  The sandbox is still a VU1 interpreter (AOT-compiled programs) whose output goes through the GS register state
-  (`gsWrites`): emulation under another name, kept only as a diagnostic reference. The goal is native draws built from
-  the game's own data (the VIF1 packets' vertices, matrices and GS setup) without running the microprograms.
+- VU1 program lifted to C++, emulation still to remove: the one microcode image the game runs (`95d44bbc45fcd2fe`,
+  1496 pairs) is lifted by `PS2Recomp/tools/vu1_lift.py` (spec `recomp/vu1_lift_spec.json`, 60 start pcs, output
+  `generated/vu1lift/` by `scripts/compile_vu1.sh`) and runs in place of the sandbox by default
+  (`runtime/sct2_vu1_port.cpp`, `SCT2_VU1_PORT=0` for the sandbox). Still on the VIF1 thread through
+  `ps2x::native::Vu1StreamAdapter`; the emulated VU1 runs nothing (`vu1 mscal=0`). `SCT2_VU1_PORT=check` runs the
+  lifted program and the sandbox from the same state and compares registers, flags, VU memory, PATH1 packets and
+  cycles: 0 mismatches, 0 unknown JR targets and 0 starts left on the sandbox (any other microcode image would be) over
+  Exhibition, the Tutorial, Challenge and Spectator, about 0.7-1.1 million programs per 600 frames; the menus and the
+  Pro Tour screens reached by the test script start no VU1 program. The last Spectator mismatches (0x148/0x1a0,
+  12 cycles more on the sandbox) were the sandbox's: its compiled block at 0x5d8 kept the sticky sign of the
+  `ADD.xyz` sharing a pair with `FSSET`, so `FSAND 0xc0` at 0x618 read a stale bit and the strip loop stored ADC more
+  often; the interpreter (`PS2X_VU_AOT=0`) agreed with the lifted program. Fixed in ps2_vu_aot (PS2Recomp
+  sctpt2/vu1-lift-fixes 5cfa0bc), so `scripts/compile_vu1.sh` has to run again. The Challenge practice court now runs
+  at 296-300 game frames per 5 s (249-264 on the sandbox), Spectator at 300 on both. This is not native rendering
+  yet: the lifted program still builds GIF packets in VU memory and they go through the GS register state
+  (`gsWrites`) as before. The goal stays native draws built from the game's own data (the VIF1 packets' vertices,
+  matrices and GS setup); the direct-draw output of `vu1_lift.py` is being built for the SC3 port first.
 - Movie pictures on the host clock: the menu movie's `sceMpegGetPicture` (runtime MPEG HLE) waited for vsyncs to
   pace its pictures, the last vblank wait left in a native run. With native frames it now waits for the picture's
   deadline on the host clock (native/mpeg-host-clock 8508fd6): 0 vsync waits in a 150 s run through the movie, menus
@@ -223,13 +231,11 @@ layer at a time, each checked with a boot and a match:
 ## Status
 
 Boots, menus, player select, Exhibition and World Tournament matches with music and sound effects, on the native
-target by default (GS on OpenGL at 2x, IOP modules recompiled, VU1 programs still on the sandbox, sound and frames on
+target by default (GS on OpenGL at 2x, IOP modules recompiled, the VU1 program lifted to C++, sound and frames on
 the host clock, 60 fps). The memory card works: Options > SAVE writes the system data to `game/mc0/BASLUS-20933SCSYS/`
 (150 KB data, `icon.sys`, icon), a second save offers to overwrite it, the next boot loads it ("Load Successful") and
 Options > LOAD reads it back. Pro Tour (mode select, new player profile), Challenge (Shooting Service, hits and high
-score), Spectator (a computer match) and the Tutorial (lessons) work. Open: ghost trails on the player card; the
-practice court of the Tutorial and Challenge runs at about 52 fps (260 game frames per 5 s) where menus and
-matches run at 60. It sends much more VU1 work than a match: with VIF1 on the EE thread the EE thread was 95% busy
-(237 frames per 5 s), mostly in the VU1 programs (`jit87` alone 14%), VIF unpacks and GifToNative. VIF1 and the VU1
-programs now run on their own thread by default (`PS2X_VIF1_THREAD=1`; matches stay at 300), where that work keeps the
-VIF1 thread about 80% busy; the rest of the gap is the speed of those VU1 programs.
+score), Spectator (a computer match) and the Tutorial (lessons) work. Open: ghost trails on the player card. The
+practice court of the Tutorial and Challenge sends much more VU1 work than a match: on the sandbox it ran at about
+52 fps (249-264 game frames per 5 s in Challenge, VIF1 thread about 80% busy); with the lifted VU1 program Challenge runs at 296-300. VIF1
+and the VU1 program run on their own thread by default (`PS2X_VIF1_THREAD=1`).
